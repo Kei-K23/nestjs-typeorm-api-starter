@@ -1,0 +1,203 @@
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Req,
+  Delete,
+  Patch,
+  UseInterceptors,
+  UploadedFile,
+  Optional,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+} from '@nestjs/common';
+import { AuthService } from '../services/auth.service';
+import { TwoFactorService } from '../services/two-factor.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { AuthenticatedUser } from '../interfaces/user.interface';
+import { Request } from 'express';
+import { LogActivity } from 'src/activity-log/decorators/log-activity.decorator';
+import { ActivityAction } from 'src/activity-log/entities/user-activity-log.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { LoginDto } from '../dto/login.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { VerifyTwoFactorDto } from '../dto/verify-two-factor.dto';
+import { EnableTwoFactorDto } from '../dto/enable-two-factor.dto';
+import { DisableTwoFactorDto } from '../dto/disable-two-factor.dto';
+import { ResponseUtil } from 'src/common/utils/response.util';
+import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
+
+@Controller('api/auth')
+export class AuthController {
+  constructor(
+    private authService: AuthService,
+    private twoFactorService: TwoFactorService,
+    private s3ClientUtils: S3ClientUtils,
+  ) {}
+
+  @Post('login')
+  async login(@Body() loginDto: LoginDto, @Req() request: Request) {
+    const result = await this.authService.login(loginDto, request);
+    return ResponseUtil.success(result, 'Login successful');
+  }
+
+  @Post('refresh')
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    const result = await this.authService.refreshAccessToken(
+      refreshTokenDto.refreshToken,
+    );
+    return ResponseUtil.success(result, 'Token refreshed successfully');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @LogActivity({
+    action: ActivityAction.LOGOUT,
+    description: 'User logged out successfully',
+    resourceType: 'user',
+    getResourceId: (result: AuthenticatedUser) => result.id?.toString(),
+  })
+  async logout(@Body() refreshTokenDto: RefreshTokenDto) {
+    await this.authService.logout(refreshTokenDto.refreshToken);
+    return ResponseUtil.success(null, 'Logout successful');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@CurrentUser() user: AuthenticatedUser) {
+    if (
+      user.profileImageUrl &&
+      (await this.s3ClientUtils.objectExists(user.profileImageUrl))
+    ) {
+      user.profileImageUrl =
+        (await this.s3ClientUtils.generatePresignedUrl(user.profileImageUrl)) ||
+        '';
+    }
+    return ResponseUtil.success(user, 'Profile retrieved successfully');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @UseInterceptors(FileInterceptor('profileImage'))
+  async updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Optional()
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif|webp)$/ }),
+        ],
+        fileIsRequired: false,
+      }),
+    )
+    profileImage: Express.Multer.File | null,
+    @Body() updateProfileDto: UpdateProfileDto,
+    @Req() request: Request,
+  ) {
+    const updatedUser = await this.authService.updateProfile(
+      user.id,
+      updateProfileDto,
+      request,
+      profileImage,
+    );
+    return ResponseUtil.success(updatedUser, 'Profile updated successfully');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('change-password')
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Req() request: Request,
+  ) {
+    await this.authService.changePassword(user.id, changePasswordDto, request);
+    return ResponseUtil.success(
+      null,
+      'Password changed successfully. Please login again.',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('profileImage'))
+  @Delete('profile')
+  async deleteProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
+  ) {
+    await this.authService.deleteProfile(user.id, request);
+    return ResponseUtil.success(null, 'Profile deleted successfully');
+  }
+
+  @Post('verify-2fa')
+  async verifyTwoFactor(
+    @Body() verifyTwoFactorDto: VerifyTwoFactorDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.verifyTwoFactorAndLogin(
+      verifyTwoFactorDto.userId,
+      verifyTwoFactorDto.code,
+      request,
+    );
+    return ResponseUtil.success(result, 'Two-factor authentication successful');
+  }
+
+  @Post('enable-2fa-verify')
+  async enableTwoFactorVerify(@Body() verifyTwoFactorDto: VerifyTwoFactorDto) {
+    const result = await this.twoFactorService.verifyTwoFactor(
+      verifyTwoFactorDto.userId,
+      verifyTwoFactorDto.code,
+    );
+    return ResponseUtil.success(
+      result,
+      'Two-factor authentication enable successful',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('enable-2fa')
+  @LogActivity({
+    action: ActivityAction.UPDATE,
+    description: 'Two-factor authentication enabled',
+    resourceType: 'user',
+    getResourceId: (result: AuthenticatedUser) => result.id?.toString(),
+  })
+  async enableTwoFactor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() enableTwoFactorDto: EnableTwoFactorDto,
+  ) {
+    await this.twoFactorService.enableTwoFactor(
+      user.id,
+      enableTwoFactorDto.email,
+    );
+    return ResponseUtil.success(
+      null,
+      'Two-factor authentication enable verification code sent to email',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('disable-2fa')
+  @LogActivity({
+    action: ActivityAction.UPDATE,
+    description: 'Two-factor authentication disabled',
+    resourceType: 'user',
+    getResourceId: (result: AuthenticatedUser) => result.id?.toString(),
+  })
+  async disableTwoFactor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() disableTwoFactorDto: DisableTwoFactorDto,
+  ) {
+    await this.twoFactorService.disableTwoFactor(
+      user.id,
+      disableTwoFactorDto.password,
+    );
+    return ResponseUtil.success(null, 'Two-factor authentication disabled');
+  }
+}

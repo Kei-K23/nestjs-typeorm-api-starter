@@ -1,0 +1,1244 @@
+{
+	"info": {
+		"_postman_id": "56ce0e7e-fc68-4103-92d7-b2c1243b686c",
+		"name": "NestJS TypeORM Template API Documentation",
+		"description": "NestJS TypeORM Template API documentation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30708326"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "admin login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : \"arkarmin@obs.com.mm\",\n    \"password\" : \"passwordD123!@#\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/login",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify 2FA",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\" : 1,\n    \"code\" : 658993\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/verify-2fa",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"verify-2fa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify 2FA Enable",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\" : 1,\n    \"code\" : 142294\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/enable-2fa-verify",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"enable-2fa-verify"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Enable 2FA",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : \"arkarmin@obs.com.mm\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/enable-2fa",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"enable-2fa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Disable 2FA",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\" : \"passwordD123!@#\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/disable-2fa",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"disable-2fa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\" : \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/logout",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\" : \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/refresh",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "profile",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\" : \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc1NTA0MDAyNSwiZXhwIjoxNzU1NjQ0ODI1fQ.7BOiNLvvgQGYIUESA1jCUPHz0eeaku6xJt4bd4uNqWU\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/profile",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "fullName",
+									"value": "Arkar Min",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "carNumber",
+									"value": "AA-93232",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "profileImage",
+									"type": "file",
+									"src": "/Users/arkarmin/Downloads/images/wp7041166-golang-wallpapers.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/auth/profile",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "change current auth user profile password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"currentPassword\": \"passwordD123!@#\",\n    \"newPassword\": \"newpassword456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/change-password",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/profile",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "find",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/users",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "roleId",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "admin1",
+									"disabled": true
+								},
+								{
+									"key": "isBanned",
+									"value": "false",
+									"description": "// true or false",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "find by id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/users/cb6150d1-d94a-4c1c-a76d-55b46b24e9ee",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"users",
+								"cb6150d1-d94a-4c1c-a76d-55b46b24e9ee"
+							],
+							"query": [
+								{
+									"key": "roleId",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "admin1",
+									"disabled": true
+								},
+								{
+									"key": "isBanned",
+									"value": "false",
+									"description": "// true or false",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "admin1@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "fullName",
+									"value": "John Admin",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "passwordD123!@#",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "+95912345679",
+									"type": "text"
+								},
+								{
+									"key": "roleId",
+									"value": "c456d3ee-18e9-43ef-8a05-d927abae5a16",
+									"type": "text"
+								},
+								{
+									"key": "profileImage",
+									"value": "",
+									"type": "file",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/users",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "admin@fairpricetaxi.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "fullName",
+									"value": "Arkar Min",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "passwordD123!@#",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "phone",
+									"value": "+95912345678",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "roleId",
+									"value": "66285583-aed7-41f0-8719-2ff1f4a0067e",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "profileImage",
+									"type": "file",
+									"src": "/Users/arkarmin/Downloads/images/wp5214567-gopher-wallpapers.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{domain}}/users/cb6150d1-d94a-4c1c-a76d-55b46b24e9ea",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"users",
+								"cb6150d1-d94a-4c1c-a76d-55b46b24e9ea"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\" : \"{{$randomFullName}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/users/2",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"users",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "settings",
+			"item": [
+				{
+					"name": "find smtp setting",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/settings/smtp",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"settings",
+								"smtp"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "admin",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "setup smtp setting",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smtpHost\": \"smtp.gmail.com\",\n    \"smtpPort\": 587,\n    \"smtpSecure\": false,\n    \"smtpUsername\": \"arkar1712luffy@gmail.com\",\n    \"smtpPassword\": \"jjynxromygsfyxym\",\n    \"smtpFromEmail\": \"noreply@example.com\",\n    \"smtpFromName\": \"OBS CRM System\",\n    \"smtpEnabled\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/settings/smtp",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"settings",
+								"smtp"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Roles & Permissions",
+			"item": [
+				{
+					"name": "find all roles",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/roles",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles"
+							],
+							"query": [
+								{
+									"key": "department",
+									"value": "sales",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "find all available permissions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/roles/permissions",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles",
+								"permissions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "find role by id",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/roles/1",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create roles",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Demo\",\n  \"description\": \"Demo role with very small limited privileges and only can read the data\",\n  \"permissionIds\" : [2, 6, 10, 14]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/roles",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update role",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"permissionIds\" : [1, 2, 6, 10, 14]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/roles/2",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete role",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\" : \"{{$randomFullName}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/roles/2",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"roles",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Activity Logs",
+			"item": [
+				{
+					"name": "activities logs",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain}}/activity-logs",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"activity-logs"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "action",
+									"value": "login",
+									"disabled": true
+								},
+								{
+									"key": "startDate",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "endDate",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "DESC",
+									"disabled": true
+								},
+								{
+									"key": "isActivityLog",
+									"value": "false",
+									"description": "// You can get user activities logs by filtering isActivityLog=true and you can get audit logs by filter isActivityLog=false",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
