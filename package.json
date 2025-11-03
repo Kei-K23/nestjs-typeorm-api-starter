@@ -1,7 +1,7 @@
 {
-  "name": "nestjs-typeorm-template",
+  "name": "nestjs-typeorm-api-starter",
   "version": "0.0.1",
-  "description": "NestJS TypeORM PostgreSQL Template",
+  "description": "NestJS TypeORM API Starter",
   "author": "Kei-K23",
   "private": true,
   "license": "MIT",

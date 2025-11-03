@@ -12,57 +12,48 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { User } from 'src/user/entities/user.entity';
 
-export enum TwoFactorAuthType {
-  EMAIL = 'email',
-}
-
-export enum TwoFactorAuthStatus {
+export enum CacheKeyStatus {
   PENDING = 'pending',
   VERIFIED = 'verified',
   EXPIRED = 'expired',
   USED = 'used',
 }
 
-@Entity('two_factor_auth')
-export class TwoFactorAuth {
+export enum CacheKeyService {
+  TWO_FACTOR = 'two_factor',
+  RESET_PASSWORD = 'reset_password',
+}
+
+@Entity('cache_keys')
+export class CacheKey {
   @PrimaryColumn('uuid')
   id: string;
 
   @Column()
   userId: string;
 
-  @ManyToOne(() => User, (user) => user.twoFactorAuth)
+  @ManyToOne(() => User, (user) => user.cacheKeys)
   @JoinColumn({ name: 'userId' })
   user: User;
 
   @Column({
     type: 'enum',
-    enum: TwoFactorAuthType,
-    default: TwoFactorAuthType.EMAIL,
+    enum: CacheKeyStatus,
+    default: CacheKeyStatus.PENDING,
   })
-  type: TwoFactorAuthType;
-
-  @Column({ length: 6 })
-  code: string;
+  status: CacheKeyStatus;
 
   @Column({
     type: 'enum',
-    enum: TwoFactorAuthStatus,
-    default: TwoFactorAuthStatus.PENDING,
+    enum: CacheKeyService,
   })
-  status: TwoFactorAuthStatus;
+  service: CacheKeyService;
+
+  @Column()
+  code: string;
 
   @Column()
   expiresAt: Date;
-
-  @Column({ nullable: true })
-  verifiedAt: Date;
-
-  @Column({ nullable: true })
-  ipAddress: string;
-
-  @Column({ nullable: true })
-  userAgent: string;
 
   @Column({ default: 0 })
   attempts: number;

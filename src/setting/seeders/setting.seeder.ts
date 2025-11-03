@@ -38,7 +38,7 @@ export class SettingSeeder {
       },
       {
         key: 'smtp_from_name',
-        value: 'OBS CRM System',
+        value: 'NestJS TypeORM API Starter',
       },
       {
         key: 'smtp_enabled',

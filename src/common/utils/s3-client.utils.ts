@@ -35,6 +35,9 @@ export class S3ClientUtils {
     });
   }
 
+  /**
+   * Generate a presigned URL for a file in S3
+   */
   async generatePresignedUrl(
     key: string,
     expiresIn: number = 3600,
@@ -59,6 +62,9 @@ export class S3ClientUtils {
     }
   }
 
+  /**
+   * Check if an object exists in S3
+   */
   async objectExists(key: string): Promise<boolean> {
     try {
       const command = new HeadObjectCommand({
@@ -78,6 +84,9 @@ export class S3ClientUtils {
     }
   }
 
+  /**
+   * Upload a file to S3
+   */
   async uploadFile({
     key,
     body,
@@ -113,6 +122,69 @@ export class S3ClientUtils {
       return { success: false, error: err.message, key: `${path}/${key}` };
     }
   }
+
+  /**
+   * Update an existing file in S3
+   * Note: This method overwrites the existing file with the new content.
+   */
+  async updateFile({
+    oldKey,
+    key,
+    body,
+    contentType,
+    path,
+    metadata,
+  }: {
+    key: string;
+    oldKey: string;
+    body: Buffer | Uint8Array | string;
+    contentType?: string;
+    path?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ success: boolean; key?: string; error?: string }> {
+    const newKey = `${path}/${key}`;
+    if (oldKey === key) {
+      throw new Error('oldKey and key must be different');
+    }
+
+    if (!(await this.objectExists(oldKey))) {
+      throw new Error(`oldKey ${oldKey} does not exist`);
+    }
+
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: newKey,
+        Body: body,
+        ContentType: contentType,
+        Metadata: metadata,
+      });
+
+      await this.s3Client.send(command);
+      this.logger.log(`Successfully updated file: ${key}`);
+      // Delete old data
+      await this.deleteObject(oldKey);
+
+      return { success: true, key: newKey };
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(
+        `Failed to update file ${key}: ${err.message}`,
+        err.stack,
+      );
+      // When error occur and image is uploaded, rollback and delete new image
+      await this.deleteObject(newKey);
+      this.logger.error(
+        `Rollback: Successfully deleted new uploaded file: ${newKey}`,
+      );
+
+      return { success: false, error: err.message, key: newKey };
+    }
+  }
+
+  /**
+   * Delete a file from S3
+   */
   async deleteObject(
     key: string,
   ): Promise<{ success: boolean; error?: string }> {

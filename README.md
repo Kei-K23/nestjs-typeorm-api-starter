@@ -11,6 +11,7 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
 - **JWT Authentication** - Secure authentication with access and refresh tokens
 - **Role-Based Access Control (RBAC)** - Flexible permission system with roles and permissions
 - **Two-Factor Authentication (2FA)** - Enhanced security with TOTP support
+- **Forgot Password** - Secure password reset with email verification
 - **Activity Logging** - Comprehensive user activity tracking and audit trails
 - **File Upload Support** - AWS S3 integration for file storage
 - **Email Service** - SMTP configuration for transactional emails
@@ -22,16 +23,6 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
 ### CLI Tools
 
 - **Code Generation** - Powerful CLI for generating modules, services, and controllers
-- **Template System** - Consistent code templates with best practices
-- **Snake Case Support** - Automatic table name conversion to snake_case
-
-### Development Features
-
-- **TypeScript** - Full TypeScript support with strict configuration
-- **ESLint & Prettier** - Code formatting and linting
-- **Jest Testing** - Unit and integration testing setup
-- **Hot Reload** - Development server with automatic restart
-- **Environment Configuration** - Flexible environment-based configuration
 
 ## 📋 Prerequisites
 
@@ -46,7 +37,7 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
 
    ```bash
    git clone <repository-url>
-   cd nestjs-typeorm-template
+   cd nestjs-typeorm-api-starter
    ```
 
 2. **Install dependencies**
@@ -66,45 +57,51 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
    Update the following variables in your `.env` file:
 
    ```env
-   # Application
-   APP_NAME=YourAppName
-   PORT=3000
-   NODE_ENV=development
+    # App Config
+    APP_NAME=Nestjs-Typeorm-Postgres
+    PORT=8090
 
-   # Database
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_USERNAME=your_db_user
-   DB_PASSWORD=your_db_password
-   DB_NAME=your_db_name
+    # Auth Config
+    AUTH_PASSWORD_SALT_ROUNDS=10
 
-   # JWT Configuration
-   JWT_SECRET=your_jwt_secret_key
-   JWT_EXPIRATION=15m
-   JWT_REFRESH_SECRET=your_refresh_secret_key
-   JWT_REFRESH_EXPIRATION=7d
+    # Database Configuration
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_USERNAME=postgres
+    DB_PASSWORD=postgres
+    DB_NAME=nestjs_typeorm_postgres_db
+    NODE_ENV=development
 
-   # AWS S3 Configuration
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-   AWS_REGION=your_aws_region
-   AWS_BUCKET_NAME=your_s3_bucket_name
+    # JWT Configuration
+    JWT_SECRET=74db5010c1cd2989e21f49160e22e014b51625097bb721535c529de2cb97f58d
+    JWT_EXPIRATION=5m
+    JWT_REFRESH_SECRET=59292b190434a15524d53f2e03df1a5f961d5852ee9ed42b9a4c5f8601b80a81
+    JWT_REFRESH_EXPIRATION=7d
+
+    # AWS S3 Configuration
+    AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
+    AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
+    AWS_REGION=<AWS_REGION>
+    AWS_BUCKET_NAME=<AWS_BUCKET_NAME>
+
+    # Email Configuration
+    EMAIL_FROM_NAME="NestJS TypeORM API Starter"
    ```
 
 4. **Database Setup**
 
-   Create your PostgreSQL database and run the application. TypeORM will automatically create tables based on your entities.
+Create your PostgreSQL database and run the application. TypeORM will automatically create tables based on your entities.
 
 5. **Start the application**
 
-   ```bash
-   # Development
-   npm run start:dev
+```bash
+# Development
+npm run start:dev
 
-   # Production
-   npm run build
-   npm run start:prod
-   ```
+# Production
+npm run build
+npm run start:prod
+```
 
 ## 🏗️ Project Structure
 
@@ -148,9 +145,7 @@ src/
 └── main.ts           # Application entry point
 
 cli/                   # CLI tools for code generation
-├── commands/          # CLI command implementations
-├── templates/         # Code generation templates
-└── utils/            # CLI utilities
+└── easy-generate/     # CLI for easy code generation
 ```
 
 ## 🔧 CLI Usage
@@ -171,18 +166,6 @@ Generates a complete module with:
 - DTOs (Create, Update, Filter)
 - Module configuration
 
-### Generate Service
-
-```bash
-npm run make:service <service-name> [--path=custom/path]
-```
-
-### Generate Controller
-
-```bash
-npm run make:controller <controller-name> [--path=custom/path]
-```
-
 ### Example
 
 ```bash
@@ -197,7 +180,7 @@ npm run make:module product --path=src/ecommerce
 
 ### JWT Authentication
 
-- Access tokens (15 minutes default)
+- Access tokens (1 day default)
 - Refresh tokens (7 days default)
 - Automatic token refresh
 
@@ -209,16 +192,11 @@ npm run make:module product --path=src/ecommerce
   module: PermissionModule.USERS,
   permission: 'create'
 })
-
-// Protect routes with roles
-@RequireRoles('admin', 'moderator')
 ```
 
 ### Two-Factor Authentication
 
-- TOTP-based 2FA
-- QR code generation
-- Backup codes support
+- Email OTP-based 2FA (default)
 
 ## 📊 Activity Logging
 
@@ -236,20 +214,67 @@ async createUser(@Body() createUserDto: CreateUserDto) {
 }
 ```
 
-## 📁 File Upload
+## 🪣 S3 Utilities
 
-AWS S3 integration for file uploads:
+AWS S3 integration:
 
 ```typescript
-@Post('upload')
-@UseInterceptors(FileInterceptor('file'))
-async uploadFile(@UploadedFile() file: Express.Multer.File) {
-  return await this.s3Service.uploadFile({
-    key: `uploads/${file.originalname}`,
-    body: file.buffer,
-    contentType: file.mimetype
-  });
-}
+  /**
+   * Generate a presigned URL for a file in S3
+   */
+  async generatePresignedUrl(
+    key: string,
+    expiresIn: number = 3600,
+  ): Promise<string | null> {}
+
+  /**
+   * Check if an object exists in S3
+   */
+  async objectExists(key: string): Promise<boolean> {}
+
+  /**
+   * Upload a file to S3
+   */
+  async uploadFile({
+    key,
+    body,
+    contentType,
+    path,
+    metadata,
+  }: {
+    key: string;
+    body: Buffer | Uint8Array | string;
+    contentType?: string;
+    path?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ success: boolean; key?: string; error?: string }> {}
+
+  /**
+   * Update an existing file in S3
+   * Note: This method overwrites the existing file with the new content.
+   */
+  async updateFile({
+    oldKey,
+    key,
+    body,
+    contentType,
+    path,
+    metadata,
+  }: {
+    key: string;
+    oldKey: string;
+    body: Buffer | Uint8Array | string;
+    contentType?: string;
+    path?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ success: boolean; key?: string; error?: string }> {}
+
+  /**
+   * Delete a file from S3
+   */
+  async deleteObject(
+    key: string,
+  ): Promise<{ success: boolean; error?: string }> {...}
 ```
 
 ## 📧 Email Service
@@ -258,20 +283,10 @@ SMTP configuration for sending emails:
 
 ```typescript
 // Send two-factor authentication code
-await this.emailService.sendTwoFactorCode(user.email, code, user.firstName);
-```
+await this.emailServiceUtils.sendTwoFactorCode({...});
 
-## 🧪 Testing
-
-```bash
-# Unit tests
-npm run test
-
-# E2E tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
+// Send forgot password reset code
+await this.emailServiceUtils.sendForgotPasswordResetCode({...});
 ```
 
 ## 📝 API Documentation
@@ -279,6 +294,10 @@ npm run test:cov
 The template includes standardized API responses:
 
 ### Success Response
+
+```typescript
+return ResponseUtil.success(user, `User retrieved by ID ${id} successfully`);
+```
 
 ```json
 {
@@ -291,18 +310,29 @@ The template includes standardized API responses:
 
 ### Paginated Response
 
+```typescript
+return ResponseUtil.paginated(
+  result.data,
+  result.total,
+  result.page,
+  result.limit,
+  'Users retrieved successfully',
+);
+```
+
 ```json
 {
   "success": true,
   "message": "Data retrieved successfully",
   "data": [...],
-  "pagination": {
-    "total": 100,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 10
+  "meta": {
+        "total": 1,
+        "page": 1,
+        "limit": 10,
+        "totalPages": 1
   },
-  "statusCode": 200
+  "statusCode": 200,
+  "timestamp": "2025-11-03T15:43:11.561Z"
 }
 ```
 

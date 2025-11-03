@@ -16,6 +16,7 @@ export enum ActivityAction {
   UPDATE = 'update',
   DELETE = 'delete',
   CHANGE_PASSWORD = 'change_password',
+  FORGOT_PASSWORD_SEND_OTP = 'forgot_password_send_otp',
   RESET_PASSWORD = 'reset_password',
 }
 

@@ -11,7 +11,7 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { RolePermission } from './entities/role-permission.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
-import { TwoFactorAuth } from './entities/two-factor-auth.entity';
+import { CacheKey } from './entities/cache-key.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
@@ -32,7 +32,7 @@ import { EmailServiceUtils } from 'src/common/utils/email-service.utils';
       RolePermission,
       RefreshToken,
       UserActivityLog,
-      TwoFactorAuth,
+      CacheKey,
       Setting,
     ]),
     PassportModule,

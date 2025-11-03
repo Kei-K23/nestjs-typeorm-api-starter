@@ -23,6 +23,16 @@ import { LoginDto } from '../dto/login.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
+import { ForgotPasswordSendOTPDto } from '../dto/forgot-password-send-otp.dto';
+import { EmailServiceUtils } from 'src/common/utils/email-service.utils';
+import * as crypto from 'crypto';
+import {
+  CacheKey,
+  CacheKeyService,
+  CacheKeyStatus,
+} from '../entities/cache-key.entity';
+import { VerifyPasswordResetOTPCodeDto } from '../dto/verify-password-reset-otp-code.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -33,10 +43,13 @@ export class AuthService {
     private refreshTokenRepository: Repository<RefreshToken>,
     @InjectRepository(UserActivityLog)
     private userActivityLogRepository: Repository<UserActivityLog>,
+    @InjectRepository(CacheKey)
+    private cacheKeyRepository: Repository<CacheKey>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private twoFactorService: TwoFactorService,
     private s3ClientUtils: S3ClientUtils,
+    private emailServiceUtils: EmailServiceUtils,
   ) {}
 
   async validateUser(email: string, plainPassword: string) {
@@ -354,15 +367,8 @@ export class AuthService {
       throw new BadRequestException('Current password is incorrect');
     }
 
-    // Hash new password
-    const saltRounds = 10;
-    const hashedNewPassword = await bcrypt.hash(
-      changePasswordDto.newPassword,
-      saltRounds,
-    );
-
     // Update password
-    user.password = hashedNewPassword;
+    user.password = changePasswordDto.newPassword;
     await this.userRepository.save(user);
 
     // Revoke all refresh tokens for security
@@ -413,5 +419,166 @@ export class AuthService {
     await this.revokeAllUserTokens(userId);
 
     await this.userRepository.remove(user);
+  }
+
+  async passwordResetOTPSend(
+    forgotPasswordSendOTP: ForgotPasswordSendOTPDto,
+    request: Request,
+  ) {
+    const user = await this.userRepository.findOne({
+      where: { email: forgotPasswordSendOTP.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Log activity
+    const { device, browser, os } = parseUserAgent(request);
+    const userActivityLog = this.userActivityLogRepository.create({
+      userId: user.id,
+      action: ActivityAction.FORGOT_PASSWORD_SEND_OTP,
+      description: 'User send forgot password request',
+      ipAddress: request?.ip,
+      userAgent: request?.headers['user-agent'],
+      device,
+      browser,
+      os,
+      location: request?.headers['cf-ipcountry'] as string,
+    });
+    await this.userActivityLogRepository.save(userActivityLog);
+
+    // Generate verification code
+    const code = this.generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Create cache key record
+    const cacheKey = this.cacheKeyRepository.create({
+      userId: user.id,
+      service: CacheKeyService.RESET_PASSWORD,
+      code,
+      expiresAt,
+      status: CacheKeyStatus.PENDING,
+      attempts: 0,
+      maxAttempts: 3,
+    });
+    await this.cacheKeyRepository.save(cacheKey);
+
+    // Send Forgot password reset code
+    await this.emailServiceUtils.sendForgotPasswordResetCode({
+      code,
+      email: user.email,
+      userName: user.fullName,
+      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      expiresIn: 10,
+    });
+
+    return {
+      userId: user.id,
+    };
+  }
+
+  async verifyPasswordResetOTPCode(
+    verifyPasswordResetOTPCode: VerifyPasswordResetOTPCodeDto,
+  ) {
+    const otpVerification = await this.cacheKeyRepository.findOne({
+      where: {
+        userId: verifyPasswordResetOTPCode.userId,
+        service: CacheKeyService.RESET_PASSWORD,
+        status: CacheKeyStatus.PENDING,
+      },
+    });
+
+    if (!otpVerification) {
+      throw new BadRequestException('No pending otp verification found');
+    }
+
+    // Check if code has expired
+    if (new Date() > otpVerification.expiresAt) {
+      otpVerification.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(otpVerification);
+      throw new BadRequestException('Verification code has expired');
+    }
+
+    // Check if max attempts reached
+    if (otpVerification.attempts >= otpVerification.maxAttempts) {
+      otpVerification.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(otpVerification);
+      throw new BadRequestException('Maximum verification attempts exceeded');
+    }
+
+    // Increment attempts
+    otpVerification.attempts += 1;
+
+    // Verify code
+    if (otpVerification.code !== verifyPasswordResetOTPCode.code) {
+      await this.cacheKeyRepository.save(otpVerification);
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Mark as active
+    otpVerification.status = CacheKeyStatus.VERIFIED;
+    await this.cacheKeyRepository.save(otpVerification);
+
+    const payload = {
+      sub: verifyPasswordResetOTPCode.userId,
+      userId: verifyPasswordResetOTPCode.userId,
+      type: CacheKeyService.RESET_PASSWORD,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      userId: verifyPasswordResetOTPCode.userId,
+      accessToken,
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto, request: Request) {
+    // Validate and decode access token
+    try {
+      await this.jwtService.verifyAsync(resetPasswordDto.accessToken);
+    } catch {
+      throw new UnauthorizedException('Access token verification failed');
+    }
+
+    const { userId, type } = this.jwtService.decode(
+      resetPasswordDto.accessToken,
+    );
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (type !== CacheKeyService.RESET_PASSWORD) {
+      throw new BadRequestException('Invalid access token type');
+    }
+
+    // Update password
+    user.password = resetPasswordDto.newPassword;
+    await this.userRepository.save(user);
+
+    // Log activity
+    const { device, browser, os } = parseUserAgent(request);
+    const userActivityLog = this.userActivityLogRepository.create({
+      userId: user.id,
+      action: ActivityAction.CHANGE_PASSWORD,
+      description: 'User password changed successfully',
+      ipAddress: request?.ip,
+      userAgent: request?.headers['user-agent'],
+      device,
+      browser,
+      os,
+      location: request?.headers['cf-ipcountry'] as string,
+    });
+    await this.userActivityLogRepository.save(userActivityLog);
+  }
+
+  private generateVerificationCode(): string {
+    return crypto.randomInt(100000, 999999).toString();
   }
 }

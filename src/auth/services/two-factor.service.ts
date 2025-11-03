@@ -1,22 +1,28 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  TwoFactorAuth,
-  TwoFactorAuthType,
-  TwoFactorAuthStatus,
-} from '../entities/two-factor-auth.entity';
 import { User } from 'src/user/entities/user.entity';
 import * as crypto from 'crypto';
 import { EmailServiceUtils } from 'src/common/utils/email-service.utils';
+import {
+  CacheKey,
+  CacheKeyService,
+  CacheKeyStatus,
+} from '../entities/cache-key.entity';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class TwoFactorService {
   private readonly logger = new Logger(TwoFactorService.name);
 
   constructor(
-    @InjectRepository(TwoFactorAuth)
-    private twoFactorRepository: Repository<TwoFactorAuth>,
+    @InjectRepository(CacheKey)
+    private cacheKeyRepository: Repository<CacheKey>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private emailServiceUtils: EmailServiceUtils,
@@ -32,90 +38,76 @@ export class TwoFactorService {
       throw new BadRequestException('Email does not match user account');
     }
 
-    // Check if 2FA is already enabled
-    const existing = await this.twoFactorRepository.findOne({
-      where: {
-        userId,
-        type: TwoFactorAuthType.EMAIL,
-        status: TwoFactorAuthStatus.VERIFIED,
-      },
-    });
-
-    if (existing) {
-      throw new BadRequestException(
-        'Two-factor authentication is already enabled',
-      );
-    }
-
     // Generate verification code
     const code = this.generateVerificationCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Create 2FA record
-    const twoFactor = this.twoFactorRepository.create({
+    // Create cache key record
+    const cacheKey = this.cacheKeyRepository.create({
       userId,
-      type: TwoFactorAuthType.EMAIL,
+      service: CacheKeyService.TWO_FACTOR,
       code,
       expiresAt,
-      status: TwoFactorAuthStatus.PENDING,
+      status: CacheKeyStatus.PENDING,
       attempts: 0,
       maxAttempts: 3,
     });
-
-    await this.twoFactorRepository.save(twoFactor);
+    await this.cacheKeyRepository.save(cacheKey);
 
     // Send verification email
-    await this.emailServiceUtils.sendTwoFactorCode(
+    await this.emailServiceUtils.sendTwoFactorCode({
       email,
       code,
-      user.fullName || user.email,
-    );
+      userName: user.fullName || user.email,
+      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      expiresIn: 10,
+    });
 
     this.logger.log(`2FA verification code sent to user ${userId}`);
   }
 
   async verifyTwoFactor(userId: string, code: string): Promise<boolean> {
-    const twoFactor = await this.twoFactorRepository.findOne({
+    const cacheKey = await this.cacheKeyRepository.findOne({
       where: {
         userId,
-        type: TwoFactorAuthType.EMAIL,
-        status: TwoFactorAuthStatus.PENDING,
+        service: CacheKeyService.TWO_FACTOR,
+        status: CacheKeyStatus.PENDING,
       },
       order: { createdAt: 'DESC' },
     });
 
-    if (!twoFactor) {
+    if (!cacheKey) {
       throw new BadRequestException(
-        'No pending two-factor authentication found',
+        'No pending two-factor authentication code found',
       );
     }
 
     // Check if code has expired
-    if (new Date() > twoFactor.expiresAt) {
-      twoFactor.status = TwoFactorAuthStatus.EXPIRED;
-      await this.twoFactorRepository.save(twoFactor);
+    if (new Date() > cacheKey.expiresAt) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
       throw new BadRequestException('Verification code has expired');
     }
 
     // Check if max attempts reached
-    if (twoFactor.attempts >= twoFactor.maxAttempts) {
-      twoFactor.status = TwoFactorAuthStatus.EXPIRED;
-      await this.twoFactorRepository.save(twoFactor);
+    if (cacheKey.attempts >= cacheKey.maxAttempts) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
       throw new BadRequestException('Maximum verification attempts exceeded');
     }
 
     // Increment attempts
-    twoFactor.attempts += 1;
+    cacheKey.attempts += 1;
 
     // Verify code
-    if (twoFactor.code !== code) {
-      await this.twoFactorRepository.save(twoFactor);
+    if (cacheKey.code !== code) {
+      await this.cacheKeyRepository.save(cacheKey);
       throw new BadRequestException('Invalid verification code');
     }
 
     // Mark as active
-    twoFactor.status = TwoFactorAuthStatus.VERIFIED;
-    await this.twoFactorRepository.save(twoFactor);
+    cacheKey.status = CacheKeyStatus.VERIFIED;
+    await this.cacheKeyRepository.save(cacheKey);
 
     // Update user's 2FA status
     await this.userRepository.update(userId, { twoFactorEnabled: true });
@@ -131,15 +123,21 @@ export class TwoFactorService {
     }
 
     // Verify password (you'll need to implement password verification)
-    // This is a placeholder - implement actual password verification
     if (!password) {
       throw new BadRequestException('Password is required to disable 2FA');
     }
+    if (!(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Password does not match');
+    }
 
-    // Deactivate all active 2FA records
-    await this.twoFactorRepository.update(
-      { userId, status: TwoFactorAuthStatus.VERIFIED },
-      { status: TwoFactorAuthStatus.EXPIRED },
+    // Deactivate all active cache key records
+    await this.cacheKeyRepository.update(
+      {
+        userId,
+        service: CacheKeyService.TWO_FACTOR,
+        status: CacheKeyStatus.VERIFIED,
+      },
+      { status: CacheKeyStatus.EXPIRED },
     );
 
     // Update user's 2FA status
@@ -155,11 +153,11 @@ export class TwoFactorService {
     }
 
     // Check if there's an active 2FA setup
-    const existing = await this.twoFactorRepository.findOne({
+    const existing = await this.cacheKeyRepository.findOne({
       where: {
         userId,
-        type: TwoFactorAuthType.EMAIL,
-        status: TwoFactorAuthStatus.VERIFIED,
+        service: CacheKeyService.TWO_FACTOR,
+        status: CacheKeyStatus.VERIFIED,
       },
     });
 
@@ -174,68 +172,84 @@ export class TwoFactorService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create new verification record
-    const twoFactor = this.twoFactorRepository.create({
+    const cacheKey = this.cacheKeyRepository.create({
       userId,
-      type: TwoFactorAuthType.EMAIL,
+      service: CacheKeyService.TWO_FACTOR,
       code,
       expiresAt,
-      status: TwoFactorAuthStatus.PENDING,
+      status: CacheKeyStatus.PENDING,
       attempts: 0,
       maxAttempts: 3,
     });
 
-    await this.twoFactorRepository.save(twoFactor);
+    await this.cacheKeyRepository.save(cacheKey);
 
     // Send verification email
-    await this.emailServiceUtils.sendTwoFactorCode(
-      user.email,
+    await this.emailServiceUtils.sendTwoFactorCode({
       code,
-      user.fullName || user.email,
-    );
+      email: user.email,
+      userName: user.fullName || user.email,
+      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      expiresIn: 10,
+    });
 
     this.logger.log(`2FA verification code sent to user ${userId}`);
   }
 
   async validateLoginCode(userId: string, code: string): Promise<boolean> {
-    const twoFactor = await this.twoFactorRepository.findOne({
+    const cacheKey = await this.cacheKeyRepository.findOne({
       where: {
         userId,
-        type: TwoFactorAuthType.EMAIL,
-        status: TwoFactorAuthStatus.PENDING,
+        service: CacheKeyService.TWO_FACTOR,
+        status: CacheKeyStatus.PENDING,
+        code,
       },
-      order: { createdAt: 'DESC' },
     });
 
-    if (!twoFactor) {
+    if (!cacheKey) {
       return false;
     }
 
     // Check if code has expired
-    if (new Date() > twoFactor.expiresAt) {
-      twoFactor.status = TwoFactorAuthStatus.EXPIRED;
-      await this.twoFactorRepository.save(twoFactor);
+    if (new Date() > cacheKey.expiresAt) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
       return false;
     }
 
     // Check if max attempts reached
-    if (twoFactor.attempts >= twoFactor.maxAttempts) {
-      twoFactor.status = TwoFactorAuthStatus.EXPIRED;
-      await this.twoFactorRepository.save(twoFactor);
+    if (cacheKey.attempts >= cacheKey.maxAttempts) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
+      return false;
+    }
+
+    // Check if code has expired
+    if (new Date() > cacheKey.expiresAt) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
+      return false;
+    }
+
+    // Check if max attempts reached
+    if (cacheKey.attempts >= cacheKey.maxAttempts) {
+      cacheKey.status = CacheKeyStatus.EXPIRED;
+      await this.cacheKeyRepository.save(cacheKey);
       return false;
     }
 
     // Increment attempts
-    twoFactor.attempts += 1;
+    cacheKey.attempts += 1;
 
     // Verify code
-    if (twoFactor.code !== code) {
-      await this.twoFactorRepository.save(twoFactor);
+    if (cacheKey.code !== code) {
+      await this.cacheKeyRepository.save(cacheKey);
       return false;
     }
 
     // Mark as used
-    twoFactor.status = TwoFactorAuthStatus.USED;
-    await this.twoFactorRepository.save(twoFactor);
+    cacheKey.status = CacheKeyStatus.USED;
+    await this.cacheKeyRepository.save(cacheKey);
 
     return true;
   }

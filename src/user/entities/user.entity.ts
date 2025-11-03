@@ -1,4 +1,3 @@
-import { TwoFactorAuth } from 'src/auth/entities/two-factor-auth.entity';
 import { Exclude } from 'class-transformer';
 import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +16,7 @@ import {
 } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Role } from 'src/auth/entities/role.entity';
+import { CacheKey } from 'src/auth/entities/cache-key.entity';
 
 @Entity('users')
 @Index(['email', 'fullName', 'phone'])
@@ -65,8 +65,8 @@ export class User {
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refreshTokens: RefreshToken[];
 
-  @OneToMany(() => TwoFactorAuth, (twoFactorAuth) => twoFactorAuth.user)
-  twoFactorAuth: TwoFactorAuth[];
+  @OneToMany(() => CacheKey, (cacheKey) => cacheKey.user)
+  cacheKeys: CacheKey[];
 
   @BeforeInsert()
   @BeforeUpdate()
@@ -80,7 +80,10 @@ export class User {
   @BeforeUpdate()
   async hashPassword() {
     if (this.password) {
-      const hashedPassword = await bcrypt.hash(this.password, 10);
+      const hashedPassword = await bcrypt.hash(
+        this.password,
+        Number(process.env.AUTH_PASSWORD_SALT_ROUNDS),
+      );
       this.password = hashedPassword;
     }
   }

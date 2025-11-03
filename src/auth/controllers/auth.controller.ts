@@ -32,6 +32,9 @@ import { EnableTwoFactorDto } from '../dto/enable-two-factor.dto';
 import { DisableTwoFactorDto } from '../dto/disable-two-factor.dto';
 import { ResponseUtil } from 'src/common/utils/response.util';
 import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
+import { ForgotPasswordSendOTPDto } from '../dto/forgot-password-send-otp.dto';
+import { VerifyPasswordResetOTPCodeDto } from '../dto/verify-password-reset-otp-code.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -199,5 +202,42 @@ export class AuthController {
       disableTwoFactorDto.password,
     );
     return ResponseUtil.success(null, 'Two-factor authentication disabled');
+  }
+
+  @Post('otp/send/forgot-password')
+  async forgotPasswordOTPSend(
+    @Body() forgotPasswordSendOtpDto: ForgotPasswordSendOTPDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.passwordResetOTPSend(
+      forgotPasswordSendOtpDto,
+      request,
+    );
+    return ResponseUtil.success(
+      result,
+      'Forgot password reset OTP code sent to your email',
+    );
+  }
+
+  @Post('otp/verify/forgot-password')
+  async passwordResetOTPVerify(
+    @Body() verifyPasswordResetOTPCodeDto: VerifyPasswordResetOTPCodeDto,
+  ) {
+    const result = await this.authService.verifyPasswordResetOTPCode(
+      verifyPasswordResetOTPCodeDto,
+    );
+    return ResponseUtil.success(
+      result,
+      'Successfully verify password reset code',
+    );
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @Req() request: Request,
+  ) {
+    await this.authService.resetPassword(resetPasswordDto, request);
+    return ResponseUtil.success(null, 'Successfully reset your password');
   }
 }
