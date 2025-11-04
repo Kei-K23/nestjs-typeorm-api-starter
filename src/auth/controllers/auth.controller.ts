@@ -8,11 +8,7 @@ import {
   Delete,
   Patch,
   UseInterceptors,
-  UploadedFile,
-  Optional,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
+  UploadedFiles,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { TwoFactorService } from '../services/two-factor.service';
@@ -22,7 +18,7 @@ import { AuthenticatedUser } from '../interfaces/user.interface';
 import { Request } from 'express';
 import { LogActivity } from 'src/activity-log/decorators/log-activity.decorator';
 import { ActivityAction } from 'src/activity-log/entities/user-activity-log.entity';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
@@ -87,23 +83,18 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
-  @UseInterceptors(FileInterceptor('profileImage'))
+  @UseInterceptors(AnyFilesInterceptor())
   async updateProfile(
     @CurrentUser() user: AuthenticatedUser,
-    @Optional()
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif|webp)$/ }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    profileImage: Express.Multer.File | null,
+    @UploadedFiles()
+    files: Express.Multer.File[],
     @Body() updateProfileDto: UpdateProfileDto,
     @Req() request: Request,
   ) {
+    const profileImage = files.find(
+      (file) => file.fieldname === 'profileImage',
+    );
+
     const updatedUser = await this.authService.updateProfile(
       user.id,
       updateProfileDto,

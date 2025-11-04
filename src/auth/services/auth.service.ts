@@ -283,7 +283,7 @@ export class AuthService {
     userId: string,
     updateProfileDto: UpdateProfileDto,
     request: Request,
-    profileImage: Express.Multer.File | null,
+    profileImage?: Express.Multer.File | null,
   ) {
     const user = await this.userRepository.findOne({
       where: { id: userId },

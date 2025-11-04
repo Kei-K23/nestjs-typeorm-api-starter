@@ -11,11 +11,7 @@ import {
   Patch,
   Delete,
   UseInterceptors,
-  Optional,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
+  UploadedFiles,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
@@ -29,7 +25,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { ResponseUtil } from 'src/common/utils/response.util';
 import { FilterUserDto } from '../dto/filter-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('api/users')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
@@ -38,7 +34,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('profileImage'))
+  @UseInterceptors(AnyFilesInterceptor())
   @RequirePermissions({
     module: PermissionModule.USERS,
     permission: 'create',
@@ -51,18 +47,13 @@ export class UserController {
   })
   async create(
     @Body() createUserDto: CreateUserDto,
-    @Optional()
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif|webp)$/ }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    profileImage?: Express.Multer.File,
+    @UploadedFiles()
+    files: Express.Multer.File[],
   ) {
+    const profileImage = files.find(
+      (file) => file.fieldname === 'profileImage',
+    );
+
     const user = await this.userService.create(createUserDto, profileImage);
     return ResponseUtil.created(user, 'User created successfully');
   }
@@ -97,7 +88,7 @@ export class UserController {
   }
 
   @Patch('/:id')
-  @UseInterceptors(FileInterceptor('profileImage'))
+  @UseInterceptors(AnyFilesInterceptor())
   @RequirePermissions({
     module: PermissionModule.USERS,
     permission: 'update',
@@ -111,19 +102,13 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-
-    @Optional()
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif|webp)$/ }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    profileImage?: Express.Multer.File,
+    @UploadedFiles()
+    files: Express.Multer.File[],
   ) {
+    const profileImage = files.find(
+      (file) => file.fieldname === 'profileImage',
+    );
+
     const user = await this.userService.update(id, updateUserDto, profileImage);
     return ResponseUtil.updated(user, 'User updated successfully');
   }
