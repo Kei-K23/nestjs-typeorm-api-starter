@@ -3,7 +3,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
   Repository,
   DataSource,
@@ -23,7 +23,7 @@ export class RoleService {
     private roleRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
-    @InjectRepository(RolePermission)
+    @InjectDataSource()
     private dataSource: DataSource,
   ) {}
 
@@ -75,10 +75,11 @@ export class RoleService {
     // Use transaction to ensure data consistency
     return await this.dataSource.transaction(async (manager) => {
       // Create the role
-      const role = this.roleRepository.create({
+      const role = manager.create(Role, {
         name: createRoleDto.name,
         description: createRoleDto.description,
       });
+
       const savedRole = await manager.save(role);
 
       // Create role-permission relationships
@@ -201,10 +202,12 @@ export class RoleService {
     permissionIds: string[],
     manager: EntityManager,
   ): Promise<void> {
-    const rolePermissions = permissionIds.map((permissionId) => ({
-      roleId,
-      permissionId,
-    }));
+    const rolePermissions = permissionIds.map((permissionId) =>
+      manager.create(RolePermission, {
+        roleId,
+        permissionId,
+      }),
+    );
 
     await manager.save(RolePermission, rolePermissions);
   }

@@ -19,11 +19,6 @@ export class CreateRoleDto {
   @MaxLength(255, { message: 'Description must not exceed 255 characters' })
   description?: string;
 
-  @IsString({ message: 'Department must be a string' })
-  @IsNotEmpty({ message: 'Department is required' })
-  @MaxLength(100, { message: 'Department must not exceed 100 characters' })
-  department: string;
-
   @IsArray({ message: 'Permission IDs must be an array' })
   @IsString({ each: true, message: 'Permission ID must be a string' })
   permissionIds: string[];
