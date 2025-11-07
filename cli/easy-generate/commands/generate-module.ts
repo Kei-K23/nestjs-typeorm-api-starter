@@ -80,10 +80,9 @@ export function generateModule(name: string, basePath: string = 'src'): void {
     const updateDtoTemplate = FileUtils.readFile(
       path.join(__dirname, '../templates/update-dto.template.ts'),
     );
-    const updateDtoContent = updateDtoTemplate.replace(
-      /{{entityName}}/g,
-      entityName,
-    );
+    const updateDtoContent = updateDtoTemplate
+      .replace(/{{entityName}}/g, entityName)
+      .replace(/{{kebabCaseName}}/g, kebabCaseName);
     FileUtils.writeFile(updateDtoPath, updateDtoContent);
   }
 
