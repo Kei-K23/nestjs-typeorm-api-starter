@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "56ce0e7e-fc68-4103-92d7-b2c1243b686c",
-		"name": "NestJS TypeORM Template API Documentation",
+		"name": "NestJS TypeORM API Starter Template API Documentation",
 		"description": "NestJS TypeORM Template API documentation",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "30708326"
@@ -11,7 +11,7 @@
 			"name": "Auth",
 			"item": [
 				{
-					"name": "admin login",
+					"name": "login",
 					"event": [
 						{
 							"listen": "test",
@@ -49,7 +49,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\" : \"arkarmin@obs.com.mm\",\n    \"password\" : \"passwordD123!@#\"\n}\n",
+							"raw": "{\n    \"email\" : \"arkarmin@obs.com.mm\",\n    \"password\" : \"newpassword456\"\n}\n",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -108,7 +108,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userId\" : 1,\n    \"code\" : 658993\n}",
+							"raw": "{\n    \"userId\" : \"036638a5-1a30-4ca3-8e3b-cc35c5d3135a\",\n    \"code\" : \"628242\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -167,7 +167,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userId\" : 1,\n    \"code\" : 142294\n}",
+							"raw": "{\n    \"userId\" : \"\",\n    \"code\" : \"142294\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -607,6 +607,187 @@
 							"path": [
 								"auth",
 								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Forgot Password OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : \"arkarmin@obs.com.mm\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/otp/send/forgot-password",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"otp",
+								"send",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password OTP Verify",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\" : \"3ae4d8ae-12a4-453d-9471-16c08e599113\",\n    \"code\" : \"417857\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/otp/verify/forgot-password",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"otp",
+								"verify",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json()",
+									"",
+									"if (res?.data?.accessToken) {",
+									"    pm.environment.set(\"accessToken\", res?.data?.accessToken)",
+									"}",
+									"",
+									"if (res?.data?.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", res?.data?.refreshToken)",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accessToken\" : \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYWU0ZDhhZS0xMmE0LTQ1M2QtOTQ3MS0xNmMwOGU1OTkxMTMiLCJ1c2VySWQiOiIzYWU0ZDhhZS0xMmE0LTQ1M2QtOTQ3MS0xNmMwOGU1OTkxMTMiLCJ0eXBlIjoicmVzZXRfcGFzc3dvcmQiLCJpYXQiOjE3NjIxODM5MjEsImV4cCI6MTc2MjI3MDMyMX0.OJxKScxhAVnlq0UdKK9OrTmDcz6nPjFZHYglpQ7VoyQ\",\n    \"newPassword\" : \"newnewPassword123!@#\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain}}/auth/reset-password",
+							"host": [
+								"{{domain}}"
+							],
+							"path": [
+								"auth",
+								"reset-password"
 							]
 						}
 					},
