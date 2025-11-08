@@ -9,6 +9,7 @@ import {
   Patch,
   UseInterceptors,
   UploadedFiles,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { TwoFactorService } from '../services/two-factor.service';
@@ -41,12 +42,14 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @HttpCode(200)
   async login(@Body() loginDto: LoginDto, @Req() request: Request) {
     const result = await this.authService.login(loginDto, request);
     return ResponseUtil.success(result, 'Login successful');
   }
 
   @Post('refresh')
+  @HttpCode(200)
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     const result = await this.authService.refreshAccessToken(
       refreshTokenDto.refreshToken,
@@ -56,6 +59,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
+  @HttpCode(200)
   @LogActivity({
     action: ActivityAction.LOGOUT,
     description: 'User logged out successfully',
@@ -84,6 +88,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
   @UseInterceptors(AnyFilesInterceptor())
+  @HttpCode(200)
   async updateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFiles()
@@ -106,6 +111,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('change-password')
+  @HttpCode(200)
   async changePassword(
     @CurrentUser() user: AuthenticatedUser,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -121,6 +127,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('profileImage'))
   @Delete('profile')
+  @HttpCode(200)
   async deleteProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Req() request: Request,
@@ -130,6 +137,7 @@ export class AuthController {
   }
 
   @Post('verify-2fa')
+  @HttpCode(200)
   async verifyTwoFactor(
     @Body() verifyTwoFactorDto: VerifyTwoFactorDto,
     @Req() request: Request,
@@ -143,6 +151,7 @@ export class AuthController {
   }
 
   @Post('enable-2fa-verify')
+  @HttpCode(200)
   async enableTwoFactorVerify(@Body() verifyTwoFactorDto: VerifyTwoFactorDto) {
     const result = await this.twoFactorService.verifyTwoFactor(
       verifyTwoFactorDto.userId,
@@ -156,6 +165,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('enable-2fa')
+  @HttpCode(200)
   @LogActivity({
     action: ActivityAction.UPDATE,
     description: 'Two-factor authentication enabled',
@@ -178,6 +188,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('disable-2fa')
+  @HttpCode(200)
   @LogActivity({
     action: ActivityAction.UPDATE,
     description: 'Two-factor authentication disabled',
@@ -196,6 +207,7 @@ export class AuthController {
   }
 
   @Post('otp/send/forgot-password')
+  @HttpCode(200)
   async forgotPasswordOTPSend(
     @Body() forgotPasswordSendOtpDto: ForgotPasswordSendOTPDto,
     @Req() request: Request,
@@ -211,6 +223,7 @@ export class AuthController {
   }
 
   @Post('otp/verify/forgot-password')
+  @HttpCode(200)
   async passwordResetOTPVerify(
     @Body() verifyPasswordResetOTPCodeDto: VerifyPasswordResetOTPCodeDto,
   ) {
@@ -224,6 +237,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @HttpCode(200)
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
     @Req() request: Request,
