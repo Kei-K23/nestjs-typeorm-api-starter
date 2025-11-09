@@ -184,10 +184,16 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      accessTokenExpiresAt: this.configService.get<string>(
+        'JWT_EXPIRATION',
+        '15m',
+      ),
+      refreshTokenExpiresAt: this.configService.get<string>(
+        'JWT_REFRESH_EXPIRATION',
+        '7d',
+      ),
       user: {
         id: user.id,
-        email: user.email,
-        fullName: user.fullName,
       },
     };
   }
@@ -227,11 +233,12 @@ export class AuthService {
 
     return {
       accessToken,
+      accessTokenExpiresAt: this.configService.get<string>(
+        'JWT_EXPIRATION',
+        '15m',
+      ),
       user: {
         id: refreshToken.user.id,
-        email: refreshToken.user.email,
-        fullName: refreshToken.user.fullName,
-        role: refreshToken.user?.role,
       },
     };
   }
