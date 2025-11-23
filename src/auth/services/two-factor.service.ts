@@ -15,6 +15,7 @@ import {
   CacheKeyStatus,
 } from '../entities/cache-key.entity';
 import * as bcrypt from 'bcryptjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TwoFactorService {
@@ -26,6 +27,7 @@ export class TwoFactorService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private emailServiceUtils: EmailServiceUtils,
+    private configService: ConfigService,
   ) {}
 
   async enableTwoFactor(userId: string, email: string): Promise<void> {
@@ -59,7 +61,7 @@ export class TwoFactorService {
       email,
       code,
       userName: user.fullName || user.email,
-      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      fromUsername: this.configService.get<string>('EMAIL_FROM_NAME', ''),
       expiresIn: 10,
     });
 
@@ -189,7 +191,7 @@ export class TwoFactorService {
       code,
       email: user.email,
       userName: user.fullName || user.email,
-      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      fromUsername: this.configService.get<string>('EMAIL_FROM_NAME', ''),
       expiresIn: 10,
     });
 

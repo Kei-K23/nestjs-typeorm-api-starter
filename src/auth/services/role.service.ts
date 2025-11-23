@@ -42,6 +42,7 @@ export class RoleService {
 
   async findAllPermissions() {
     return this.permissionRepository.find({
+      select: ['id', 'module', 'permission'],
       order: { createdAt: 'DESC' },
     });
   }

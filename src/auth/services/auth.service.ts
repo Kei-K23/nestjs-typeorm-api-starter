@@ -476,7 +476,7 @@ export class AuthService {
       code,
       email: user.email,
       userName: user.fullName,
-      fromUsername: process.env.EMAIL_FROM_NAME || '',
+      fromUsername: this.configService.get<string>('EMAIL_FROM_NAME', ''),
       expiresIn: 10,
     });
 
