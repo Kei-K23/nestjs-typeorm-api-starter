@@ -8,7 +8,7 @@ import {
   Repository,
   DataSource,
   EntityManager,
-  FindOptionsWhere,
+  FindManyOptions,
 } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
@@ -27,17 +27,19 @@ export class RoleService {
     private dataSource: DataSource,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 10) {
+  async findAll(page: number = 1, limit: number = 10, getAll: boolean = false) {
     const skip = (page - 1) * limit;
-    const whereConditions: FindOptionsWhere<Role> = {};
-
-    return await this.roleRepository.findAndCount({
-      skip,
-      take: limit,
+    const findOptions: FindManyOptions<Role> = {
       order: { createdAt: 'DESC' },
       relations: ['rolePermissions', 'rolePermissions.permission'],
-      where: whereConditions,
-    });
+    };
+
+    if (!getAll) {
+      findOptions.skip = skip;
+      findOptions.take = limit;
+    }
+
+    return await this.roleRepository.findAndCount(findOptions);
   }
 
   async findAllPermissions() {

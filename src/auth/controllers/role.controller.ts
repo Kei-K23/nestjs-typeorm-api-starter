@@ -9,6 +9,7 @@ import {
   UseGuards,
   NotFoundException,
   Patch,
+  ParseBoolPipe,
 } from '@nestjs/common';
 import { RoleService } from '../services/role.service';
 import { Role } from '../entities/role.entity';
@@ -36,8 +37,13 @@ export class RoleController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('getAll') getAll: boolean = false,
   ): Promise<ApiResponse<Role[]>> {
-    const [result, total] = await this.roleService.findAll(page, limit);
+    const [result, total] = await this.roleService.findAll(page, limit, getAll);
+
+    if (getAll) {
+      return ResponseUtil.success(result, 'All roles retrieved successfully');
+    }
 
     return ResponseUtil.paginated(
       result,
