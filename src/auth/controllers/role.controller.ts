@@ -9,7 +9,6 @@ import {
   UseGuards,
   NotFoundException,
   Patch,
-  ParseBoolPipe,
 } from '@nestjs/common';
 import { RoleService } from '../services/role.service';
 import { Role } from '../entities/role.entity';
