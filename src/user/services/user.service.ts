@@ -11,6 +11,7 @@ import { FilterUserDto } from '../dto/filter-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
 import { Role } from 'src/auth/entities/role.entity';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
@@ -144,7 +145,12 @@ export class UserService {
     profileImage?: Express.Multer.File,
   ) {
     // Check if user exists
-    const existingUser = await this.findOne(id);
+    const existingUser = await this.userRepository.findOne({ where: { id } });
+
+    if (!existingUser) {
+      throw new NotFoundException(`User with ID '${id}' not found`);
+    }
+
     // If email is being updated, check for duplicates
     if (updateUserDto.email && updateUserDto.email !== existingUser.email) {
       const duplicateUser = await this.userRepository.findOne({
@@ -169,9 +175,9 @@ export class UserService {
       }
     }
 
-    let profileImageKey = '';
+    let profileImageKey = existingUser.profileImageUrl || '';
     if (profileImage) {
-      // Remove old profile image if it exists
+      // Delete previous profile image from S3
       if (
         existingUser.profileImageUrl &&
         (await this.s3ClientUtils.objectExists(existingUser.profileImageUrl))
@@ -179,14 +185,16 @@ export class UserService {
         await this.s3ClientUtils.deleteObject(existingUser.profileImageUrl);
       }
 
-      const { key } = await this.s3ClientUtils.uploadFile({
-        key: profileImage.originalname,
-        body: profileImage.buffer,
-        contentType: profileImage.mimetype,
-        path: 'profile-images/',
-      });
+      // Upload new profile image to S3
+      const { key: profileImageUploadedKey } =
+        await this.s3ClientUtils.uploadFile({
+          key: `${profileImage.originalname}-${new Date().getTime()}`,
+          body: profileImage.buffer,
+          contentType: profileImage.mimetype,
+          path: 'userProfile',
+        });
 
-      profileImageKey = key || '';
+      profileImageKey = profileImageUploadedKey || '';
     }
 
     // Update the user
@@ -198,6 +206,14 @@ export class UserService {
 
     if (!updatedUser) {
       throw new NotFoundException(`User with ID '${id}' not found`);
+    }
+
+    if (updateUserDto.password) {
+      const hashedPassword = await bcrypt.hash(
+        updateUserDto.password,
+        Number(process.env.AUTH_PASSWORD_SALT_ROUNDS),
+      );
+      updatedUser.password = hashedPassword;
     }
 
     return await this.userRepository.save(updatedUser);
