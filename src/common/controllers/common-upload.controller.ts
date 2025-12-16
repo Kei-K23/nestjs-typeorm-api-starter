@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Post,
   UseGuards,
   UseInterceptors,
@@ -21,6 +22,7 @@ import { S3ClientUtils } from '../utils/s3-client.utils';
 import { ResponseUtil } from '../utils/response.util';
 import { randomUUID, createHmac, createHash } from 'crypto';
 import { Request } from 'express';
+import { DeleteFileDto } from '../dto/delete-file.dto';
 
 @Controller('api/common')
 @UseGuards(JwtAuthGuard)
@@ -33,7 +35,7 @@ export class CommonUploadController {
 
   private verifySignature(
     req: Request,
-    dto: UploadFileDto,
+    dto: { folder?: string },
     file?: Express.Multer.File,
     files?: Express.Multer.File[],
   ) {
@@ -222,5 +224,23 @@ export class CommonUploadController {
       { uploaded, failed },
       'Files uploaded successfully',
     );
+  }
+
+  @Delete('upload')
+  async deleteFile(@Body() dto: DeleteFileDto, @Req() req: Request) {
+    this.verifySignature(req, dto);
+    const key = dto.key?.trim();
+    if (!key) {
+      throw new BadRequestException('Key is required');
+    }
+    const exists = await this.s3.objectExists(key);
+    if (!exists) {
+      throw new BadRequestException('File not found');
+    }
+    const res = await this.s3.deleteObject(key);
+    if (!res.success) {
+      throw new BadRequestException(res.error || 'Delete failed');
+    }
+    return ResponseUtil.deleted('File deleted successfully');
   }
 }
