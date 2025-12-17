@@ -59,6 +59,7 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
    ```env
     # App Config
     APP_NAME=Nestjs-Typeorm-Postgres
+    APP_KEY=<APP_KEY>
     PORT=8090
 
     # Auth Config
@@ -73,10 +74,10 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
     NODE_ENV=development
 
     # JWT Configuration
-    JWT_SECRET=74db5010c1cd2989e21f49160e22e014b51625097bb721535c529de2cb97f58d
-    JWT_EXPIRATION=5m
-    JWT_REFRESH_SECRET=59292b190434a15524d53f2e03df1a5f961d5852ee9ed42b9a4c5f8601b80a81
-    JWT_REFRESH_EXPIRATION=7d
+   JWT_SECRET=74db5010c1cd2989e21f49160e22e014b51625097bb721535c529de2cb97f58d
+   JWT_EXPIRATION=172800000
+   JWT_REFRESH_SECRET=59292b190434a15524d53f2e03df1a5f961d5852ee9ed42b9a4c5f8601b80a81
+   JWT_REFRESH_EXPIRATION=2592000000
 
     # AWS S3 Configuration
     AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
@@ -148,41 +149,7 @@ cli/                   # CLI tools for code generation
 └── easy-generate/     # CLI for easy code generation
 ```
 
-## 🔧 CLI Usage
-
-This template includes a powerful CLI for rapid development:
-
-### Generate Module
-
-```bash
-npm run make:module <module-name> [--path=custom/path]
-```
-
-Generates a complete module with:
-
-- Entity with TypeORM decorators
-- Service with CRUD operations
-- Controller with REST endpoints
-- DTOs (Create, Update, Filter)
-- Module configuration
-
-### Example
-
-```bash
-# Generate a complete book module
-npm run make:module book
-
-# Generate with custom path
-npm run make:module product --path=src/ecommerce
-```
-
 ## 🔐 Authentication & Authorization
-
-### JWT Authentication
-
-- Access tokens (1 day default)
-- Refresh tokens (7 days default)
-- Automatic token refresh
 
 ### Role-Based Access Control
 
@@ -196,7 +163,7 @@ npm run make:module product --path=src/ecommerce
 
 ### Two-Factor Authentication
 
-- Email OTP-based 2FA (default)
+- Email OTP-based 2FA (optional)
 
 ## 📊 Activity Logging
 
