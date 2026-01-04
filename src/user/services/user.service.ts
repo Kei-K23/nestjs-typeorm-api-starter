@@ -1,20 +1,22 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { FilterUserDto } from '../dto/filter-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
 import { Role } from 'src/auth/entities/role.entity';
-import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -50,37 +52,40 @@ export class UserService {
     const user = this.userRepository.create({
       ...createUserDto,
     });
-    return await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+    this.logger.log(`User created with ID: ${savedUser.id}`);
+
+    return savedUser;
   }
 
   async findAll(filter: FilterUserDto) {
     const { getAll, limit, page } = filter;
     const skip = (page - 1) * limit;
-    const findOptions: FindManyOptions<User> = {
-      order: { createdAt: 'DESC' },
-      relations: ['role'],
-    };
+
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .orderBy('user.createdAt', 'DESC');
 
     if (!getAll) {
-      findOptions.skip = skip;
-      findOptions.take = limit;
+      qb.skip(skip).take(limit);
     }
 
     if (filter.search) {
-      findOptions.where = [
-        { fullName: Like(`%${filter.search}%`) },
-        { email: Like(`%${filter.search}%`) },
-      ];
+      qb.andWhere('(user.fullName ILIKE :term OR user.email ILIKE :term)', {
+        term: `%${filter.search}%`,
+      });
+    }
+
+    if (filter.roleId) {
+      qb.andWhere('user.roleId = :roleId', { roleId: filter.roleId });
     }
 
     if (filter.isBanned !== undefined) {
-      findOptions.where = {
-        ...findOptions.where,
-        isBanned: filter.isBanned,
-      };
+      qb.andWhere('user.isBanned = :isBanned', { isBanned: filter.isBanned });
     }
 
-    const [data, total] = await this.userRepository.findAndCount(findOptions);
+    const [data, total] = await qb.getManyAndCount();
 
     // Add presigned URL to each user
     const usersWithPresignedUrl = await Promise.all(
@@ -159,11 +164,7 @@ export class UserService {
       updateUserDto.profileImageUrl &&
       updateUserDto.profileImageUrl !== existingUser.profileImageUrl
     ) {
-      // Delete previous profile image from S3
-      if (
-        existingUser.profileImageUrl &&
-        (await this.s3ClientUtils.objectExists(existingUser.profileImageUrl))
-      ) {
+      if (existingUser.profileImageUrl) {
         await this.s3ClientUtils.deleteObject(existingUser.profileImageUrl);
       }
     }
@@ -179,27 +180,24 @@ export class UserService {
     }
 
     if (updateUserDto.password) {
-      const hashedPassword = await bcrypt.hash(
-        updateUserDto.password,
-        Number(process.env.AUTH_PASSWORD_SALT_ROUNDS),
-      );
-      updatedUser.password = hashedPassword;
+      updatedUser.password = updateUserDto.password;
     }
 
-    return await this.userRepository.save(updatedUser);
+    const savedUser = await this.userRepository.save(updatedUser);
+    this.logger.log(`User updated with ID: ${savedUser.id}`);
+
+    return savedUser;
   }
 
   async remove(id: string) {
     const user = await this.findOne(id);
-    // Remove profile image if it exists
-    if (
-      user.profileImageUrl &&
-      (await this.s3ClientUtils.objectExists(user.profileImageUrl))
-    ) {
+    if (user.profileImageUrl) {
       await this.s3ClientUtils.deleteObject(user.profileImageUrl);
     }
 
     await this.userRepository.remove(user);
+    this.logger.log(`User with ID '${id}' has been successfully deleted`);
+
     return {
       message: `User with ID '${id}' has been successfully deleted`,
     };

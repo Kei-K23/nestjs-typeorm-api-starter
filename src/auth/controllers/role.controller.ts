@@ -22,8 +22,11 @@ import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
 import { ResponseUtil } from 'src/common/utils/response.util';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { FilterRoleDto } from '../dto/filter-role.dto';
 
 @Controller('api/roles')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
@@ -33,27 +36,31 @@ export class RoleController {
     module: PermissionModule.ROLES,
     permission: 'read',
   })
+  @ApiOperation({ summary: 'Retrieve all roles' })
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('getAll') getAll: boolean = false,
+    @Query() filterDto: FilterRoleDto,
   ): Promise<ApiResponse<Role[]>> {
-    const [result, total] = await this.roleService.findAll(page, limit, getAll);
+    const [result, total] = await this.roleService.findAll(
+      filterDto.page,
+      filterDto.limit,
+      filterDto.getAll,
+    );
 
-    if (getAll) {
+    if (filterDto.getAll) {
       return ResponseUtil.success(result, 'All roles retrieved successfully');
     }
 
     return ResponseUtil.paginated(
       result,
       total,
-      page,
-      limit,
+      filterDto.page,
+      filterDto.limit,
       'Roles retrieved successfully',
     );
   }
 
   @Get('permissions')
+  @ApiOperation({ summary: 'Retrieve all permissions' })
   @RequirePermissions({
     module: PermissionModule.ROLES,
     permission: 'read',
@@ -68,6 +75,7 @@ export class RoleController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Retrieve a role by ID' })
   @RequirePermissions({
     module: PermissionModule.ROLES,
     permission: 'read',
@@ -83,6 +91,7 @@ export class RoleController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create a new role' })
   @RequirePermissions({
     module: PermissionModule.ROLES,
     permission: 'create',
@@ -105,6 +114,7 @@ export class RoleController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a role by ID' })
   @RequirePermissions({
     module: PermissionModule.ROLES,
     permission: 'update',
@@ -129,6 +139,7 @@ export class RoleController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a role by ID' })
   @RequirePermissions({
     module: PermissionModule.ROLES,
     permission: 'delete',

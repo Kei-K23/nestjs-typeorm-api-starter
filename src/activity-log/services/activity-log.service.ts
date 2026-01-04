@@ -7,7 +7,6 @@ import {
   FindOptionsWhere,
 } from 'typeorm';
 import { UserActivityLog } from '../entities/user-activity-log.entity';
-import { CreateActivityLogDto } from '../dto/create-activity-log.dto';
 import { FilterActivityLogDto } from '../dto/filter-activity-log.dto';
 
 @Injectable()
@@ -17,9 +16,7 @@ export class ActivityLogService {
     private readonly activityLogRepository: Repository<UserActivityLog>,
   ) {}
 
-  async create(
-    createActivityLogDto: CreateActivityLogDto,
-  ): Promise<UserActivityLog> {
+  async create(createActivityLogDto: any) {
     const activityLog = this.activityLogRepository.create(createActivityLogDto);
     return await this.activityLogRepository.save(activityLog);
   }

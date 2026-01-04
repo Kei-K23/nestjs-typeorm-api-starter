@@ -5,22 +5,43 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/logger.config';
 import helmet from 'helmet';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
+  const { apiReference } = await import('@scalar/nestjs-api-reference');
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
   // Implement security headers with Helmet
-  app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
+
+  // Environment-based CORS configuration
+  const configService = app.get(ConfigService);
+  const envOriginsRaw = configService.get<string>('CORS_ORIGINS');
+  let origins: string[] | boolean = [];
+
+  if (envOriginsRaw) {
+    const parsed = envOriginsRaw
+      .split(',')
+      .map((o) => o.trim())
+      .filter((o) => o.length > 0);
+    if (parsed.length === 1) {
+      const val = parsed[0].toLowerCase();
+      if (val === '*' || val === 'all' || val === 'true') {
+        origins = true;
+      } else {
+        origins = parsed;
+      }
+    } else if (parsed.length > 1) {
+      origins = parsed;
+    }
+  }
 
   // Environment-based CORS configuration
   const corsOptions = {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5174',
-    ],
+    origin: origins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -50,6 +71,19 @@ async function bootstrap() {
 
   // Apply global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Scalar API documentation
+  const config = new DocumentBuilder()
+    .setTitle('NestJS TypeORM API Starter')
+    .setDescription('The NestJS TypeORM API Starter description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+
+  // Route-specific CSP to permit Scalar's CDN and inline scripts
+  app.use('/reference', apiReference({ content: document }));
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on port ${process.env.PORT ?? 3000}`);

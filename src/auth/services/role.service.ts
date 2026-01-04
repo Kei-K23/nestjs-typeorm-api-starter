@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
@@ -18,6 +19,8 @@ import { UpdateRoleDto } from '../dto/update-role.dto';
 
 @Injectable()
 export class RoleService {
+  private readonly logger = new Logger(RoleService.name);
+
   constructor(
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
@@ -47,10 +50,6 @@ export class RoleService {
       select: ['id', 'module', 'permission'],
       order: { createdAt: 'DESC' },
     });
-  }
-
-  async count(): Promise<number> {
-    return this.roleRepository.count();
   }
 
   async findOne(id: string): Promise<Role | null> {
@@ -98,6 +97,7 @@ export class RoleService {
       }
 
       // Return role with permissions
+      this.logger.log(`Role created with ID: ${savedRole.id}`);
       return await manager.findOne(Role, {
         where: { id: savedRole.id },
         relations: ['rolePermissions', 'rolePermissions.permission'],
@@ -156,6 +156,7 @@ export class RoleService {
       }
 
       // Return updated role with permissions
+      this.logger.log(`Role updated with ID: ${id}`);
       return await manager.findOne(Role, {
         where: { id },
         relations: ['rolePermissions', 'rolePermissions.permission'],
@@ -177,7 +178,9 @@ export class RoleService {
       );
     }
 
+    // Delete role
     await this.roleRepository.delete(id);
+    this.logger.log(`Role with ID '${id}' has been successfully deleted`);
     return true;
   }
 

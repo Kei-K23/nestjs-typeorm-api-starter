@@ -29,6 +29,7 @@ import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
 import { ForgotPasswordSendOTPDto } from '../dto/forgot-password-send-otp.dto';
 import { VerifyPasswordResetOTPCodeDto } from '../dto/verify-password-reset-otp-code.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller('api/auth')
 export class AuthController {
@@ -39,6 +40,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @ApiOperation({ summary: 'User login' })
   @HttpCode(200)
   async login(@Body() loginDto: LoginDto, @Req() request: Request) {
     const result = await this.authService.login(loginDto, request);
@@ -46,6 +48,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
   @HttpCode(200)
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     const result = await this.authService.refreshAccessToken(
@@ -55,7 +58,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('logout')
+  @ApiOperation({ summary: 'User logout' })
   @HttpCode(200)
   @LogActivity({
     action: ActivityAction.LOGOUT,
@@ -69,7 +74,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Get('profile')
+  @ApiOperation({ summary: 'Get user profile' })
   async getProfile(@CurrentUser() user: AuthenticatedUser) {
     if (
       user.profileImageUrl &&
@@ -83,7 +90,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Patch('profile')
+  @ApiOperation({ summary: 'Update user profile' })
   @HttpCode(200)
   async updateProfile(
     @CurrentUser() user: AuthenticatedUser,
@@ -99,7 +108,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Patch('change-password')
+  @ApiOperation({ summary: 'Change user password' })
   @HttpCode(200)
   async changePassword(
     @CurrentUser() user: AuthenticatedUser,
@@ -114,7 +125,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Delete('profile')
+  @ApiOperation({ summary: 'Delete user profile' })
   @HttpCode(200)
   async deleteProfile(
     @CurrentUser() user: AuthenticatedUser,
@@ -124,7 +137,10 @@ export class AuthController {
     return ResponseUtil.success(null, 'Profile deleted successfully');
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('verify-2fa')
+  @ApiOperation({ summary: 'Verify two-factor authentication' })
   @HttpCode(200)
   async verifyTwoFactor(
     @Body() verifyTwoFactorDto: VerifyTwoFactorDto,
@@ -139,6 +155,7 @@ export class AuthController {
   }
 
   @Post('enable-2fa-verify')
+  @ApiOperation({ summary: 'Verify two-factor authentication enable' })
   @HttpCode(200)
   async enableTwoFactorVerify(@Body() verifyTwoFactorDto: VerifyTwoFactorDto) {
     const result = await this.twoFactorService.verifyTwoFactor(
@@ -152,7 +169,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('enable-2fa')
+  @ApiOperation({ summary: 'Enable two-factor authentication' })
   @HttpCode(200)
   @LogActivity({
     action: ActivityAction.UPDATE,
@@ -175,7 +194,9 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('disable-2fa')
+  @ApiOperation({ summary: 'Disable two-factor authentication' })
   @HttpCode(200)
   @LogActivity({
     action: ActivityAction.UPDATE,
@@ -196,6 +217,7 @@ export class AuthController {
 
   @Post('otp/send/forgot-password')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Send OTP for password reset' })
   async forgotPasswordOTPSend(
     @Body() forgotPasswordSendOtpDto: ForgotPasswordSendOTPDto,
     @Req() request: Request,
@@ -212,6 +234,7 @@ export class AuthController {
 
   @Post('otp/verify/forgot-password')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Verify OTP for password reset' })
   async passwordResetOTPVerify(
     @Body() verifyPasswordResetOTPCodeDto: VerifyPasswordResetOTPCodeDto,
   ) {
@@ -226,6 +249,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(200)
+  @ApiOperation({ summary: 'Reset user password' })
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
     @Req() request: Request,

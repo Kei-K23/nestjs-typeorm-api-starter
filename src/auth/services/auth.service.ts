@@ -318,9 +318,20 @@ export class AuthService {
     }
 
     // Update user fields
-    Object.assign(user, updateProfileDto);
 
-    const updatedUser = await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.preload({
+      id: userId,
+      ...updateProfileDto,
+    });
+    if (!updatedUser) {
+      throw new BadRequestException('Invalid update profile data');
+    }
+
+    if (updateProfileDto.password) {
+      updatedUser.password = updateProfileDto.password;
+    }
+
+    const savedUser = await this.userRepository.save(updatedUser);
 
     // Log activity
     const { device, browser, os } = parseUserAgent(request);
@@ -337,7 +348,7 @@ export class AuthService {
     });
     await this.userActivityLogRepository.save(userActivityLog);
 
-    const { password, ...result } = updatedUser;
+    const { password, ...result } = savedUser;
     void password;
     return result;
   }

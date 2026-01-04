@@ -23,10 +23,24 @@ import { ResponseUtil } from '../utils/response.util';
 import { randomUUID, createHmac, createHash } from 'crypto';
 import { Request } from 'express';
 import { DeleteFileDto } from '../dto/delete-file.dto';
+import {
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+  ApiTags,
+  ApiHeader,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiCreatedResponse,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 
 @Controller('api/common')
 @UseGuards(JwtAuthGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+@ApiTags('Common')
+@ApiBearerAuth()
 export class CommonUploadController {
   constructor(
     private readonly s3: S3ClientUtils,
@@ -101,6 +115,24 @@ export class CommonUploadController {
       },
     }),
   )
+  @ApiOperation({ summary: 'Upload a single file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiHeader({ name: 'x-signature', required: true })
+  @ApiHeader({ name: 'x-timestamp', required: true })
+  @ApiBearerAuth()
+  @ApiBody({
+    description: 'Upload file',
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        folder: { type: 'string' },
+        filenameOverride: { type: 'string' },
+        generateSignedUrl: { type: 'boolean' },
+      },
+      required: ['file'],
+    },
+  })
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadFileDto,
@@ -161,6 +193,28 @@ export class CommonUploadController {
       },
     }),
   )
+  @ApiOperation({ summary: 'Upload multiple files' })
+  @ApiConsumes('multipart/form-data')
+  @ApiHeader({ name: 'x-signature', required: true })
+  @ApiHeader({ name: 'x-timestamp', required: true })
+  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired signature' })
+  @ApiCreatedResponse({ description: 'Files uploaded successfully' })
+  @ApiBody({
+    description: 'Upload multiple files',
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+        },
+        folder: { type: 'string' },
+        generateSignedUrl: { type: 'boolean' },
+      },
+      required: ['files'],
+    },
+  })
   async uploadMany(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() dto: UploadFileDto,
@@ -227,6 +281,13 @@ export class CommonUploadController {
   }
 
   @Delete('upload')
+  @ApiOperation({ summary: 'Delete a file by key' })
+  @ApiHeader({ name: 'x-signature', required: true })
+  @ApiHeader({ name: 'x-timestamp', required: true })
+  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired signature' })
+  @ApiOkResponse({ description: 'File deleted successfully' })
+  @ApiBody({ description: 'Delete file', type: DeleteFileDto })
   async deleteFile(@Body() dto: DeleteFileDto, @Req() req: Request) {
     this.verifySignature(req, dto);
     const key = dto.key?.trim();

@@ -24,13 +24,13 @@ export class User {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ unique: true })
   email: string;
 
   @Column()
   fullName: string;
 
-  @Column({ nullable: false, unique: true })
+  @Column({ nullable: true, unique: true })
   phone: string;
 
   @Column({ nullable: true })
@@ -55,7 +55,7 @@ export class User {
   @Column({ default: false })
   twoFactorEnabled: boolean;
 
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   roleId: string;
 
   @ManyToOne(() => Role, (role) => role.users, { onDelete: 'CASCADE' })
@@ -69,7 +69,6 @@ export class User {
   cacheKeys: CacheKey[];
 
   @BeforeInsert()
-  @BeforeUpdate()
   generateUUID() {
     if (!this.id) {
       this.id = uuidv4();
@@ -77,13 +76,14 @@ export class User {
   }
 
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
-      const hashedPassword = await bcrypt.hash(
-        this.password,
-        Number(process.env.AUTH_PASSWORD_SALT_ROUNDS),
-      );
-      this.password = hashedPassword;
+    if (
+      this.password &&
+      !/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(this.password)
+    ) {
+      const rounds = Number(process.env.AUTH_PASSWORD_SALT_ROUNDS ?? 10);
+      this.password = await bcrypt.hash(this.password, rounds);
     }
   }
 }

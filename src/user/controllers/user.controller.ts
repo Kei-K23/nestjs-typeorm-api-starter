@@ -23,14 +23,17 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { ResponseUtil } from 'src/common/utils/response.util';
 import { FilterUserDto } from '../dto/filter-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller('api/users')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new user' })
   @RequirePermissions({
     module: PermissionModule.USERS,
     permission: 'create',
@@ -47,6 +50,7 @@ export class UserController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Retrieve all users' })
   async findAll(@Query() filters: FilterUserDto) {
     const result = await this.userService.findAll(filters);
 
@@ -67,6 +71,7 @@ export class UserController {
   }
 
   @Get('/:id')
+  @ApiOperation({ summary: 'Retrieve a user by ID' })
   async findOne(@Param('id') id: string) {
     const user = await this.userService.findOne(id);
     return ResponseUtil.success(
@@ -76,6 +81,7 @@ export class UserController {
   }
 
   @Patch('/:id')
+  @ApiOperation({ summary: 'Update a user by ID' })
   @RequirePermissions({
     module: PermissionModule.USERS,
     permission: 'update',
@@ -92,6 +98,7 @@ export class UserController {
   }
 
   @Delete('/:id')
+  @ApiOperation({ summary: 'Delete a user by ID' })
   @RequirePermissions({
     module: PermissionModule.USERS,
     permission: 'delete',
