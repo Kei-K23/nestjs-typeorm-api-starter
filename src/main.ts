@@ -9,7 +9,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const { apiReference } = await import('@scalar/nestjs-api-reference');
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
   });
@@ -82,8 +81,14 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  // Route-specific CSP to permit Scalar's CDN and inline scripts
-  app.use('/reference', apiReference({ content: document }));
+  const isProd =
+    (configService.get<string>('NODE_ENV') ??
+      process.env.NODE_ENV ??
+      'development') === 'production';
+  if (!isProd) {
+    const { apiReference } = await import('@scalar/nestjs-api-reference');
+    app.use('/reference', apiReference({ content: document }));
+  }
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on port ${process.env.PORT ?? 3000}`);
