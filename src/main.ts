@@ -5,7 +5,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/logger.config';
 import helmet from 'helmet';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
@@ -70,25 +69,6 @@ async function bootstrap() {
 
   // Apply global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
-
-  // Scalar API documentation
-  const config = new DocumentBuilder()
-    .setTitle('NestJS TypeORM API Starter')
-    .setDescription('The NestJS TypeORM API Starter description')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-
-  const isProd =
-    (configService.get<string>('NODE_ENV') ??
-      process.env.NODE_ENV ??
-      'development') === 'production';
-  if (!isProd) {
-    const { apiReference } = await import('@scalar/nestjs-api-reference');
-    app.use('/reference', apiReference({ content: document }));
-  }
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on port ${process.env.PORT ?? 3000}`);

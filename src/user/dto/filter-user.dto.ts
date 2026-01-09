@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, IsBoolean, IsUUID } from 'class-validator';
 import { PaginationFilterDto } from 'src/common/dto/pagination-filter.dto';
@@ -6,7 +5,6 @@ import { PaginationFilterDto } from 'src/common/dto/pagination-filter.dto';
 export class FilterUserDto extends PaginationFilterDto {
   @IsOptional()
   @IsString({ message: 'Search must be a string' })
-  @ApiProperty({ description: 'Search by name or email', required: false })
   search?: string;
 
   @IsOptional()
@@ -17,13 +15,11 @@ export class FilterUserDto extends PaginationFilterDto {
     if (value === 'false' || value === '0' || value === false) return false;
     return undefined;
   })
-  @ApiProperty({ description: 'Filter by banned status', required: false })
   isBanned?: boolean;
 
   @IsOptional()
   @IsString({ message: 'Role ID must be a string' })
   @IsUUID('4', { message: 'Role ID must be a valid UUID' })
   @Transform(({ value }) => value?.trim() || undefined)
-  @ApiProperty({ description: 'Filter by role ID', required: false })
   roleId?: string;
 }

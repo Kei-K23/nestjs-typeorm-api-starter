@@ -18,10 +18,8 @@ import { CreateSMTPDto } from '../dto/create-smtp-setting.dto';
 import { SMTPResponseDto } from '../dto/smtp-response.dto';
 import { ResponseUtil } from 'src/common/utils/response.util';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller('api/settings')
-@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SettingController {
   constructor(private readonly settingService: SettingService) {}
@@ -36,7 +34,6 @@ export class SettingController {
     description: 'SMTP settings setup successfully',
     resourceType: 'smtp-settings',
   })
-  @ApiOperation({ summary: 'Create SMTP settings' })
   @HttpCode(HttpStatus.CREATED)
   async createSMTPSettings(
     @Body() createSMTPDto: CreateSMTPDto,
@@ -50,7 +47,6 @@ export class SettingController {
   }
 
   @Get('smtp')
-  @ApiOperation({ summary: 'Retrieve SMTP settings' })
   @RequirePermissions({
     module: PermissionModule.SETTINGS,
     permission: 'read',

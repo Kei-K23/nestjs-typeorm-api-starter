@@ -6,16 +6,13 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { RequirePermissions } from 'src/auth/decorators/permissions.decorator';
 import { PermissionModule } from 'src/auth/entities/permission.entity';
 import { ResponseUtil } from 'src/common/utils/response.util';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller('/api/activity-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
 export class ActivityLogController {
   constructor(private readonly activityLogService: ActivityLogService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve all activity logs' })
   @RequirePermissions({
     module: PermissionModule.ACTIVITY_LOGS,
     permission: 'read',
