@@ -10,84 +10,21 @@ import {
   ValidationPipe,
   UsePipes,
   BadRequestException,
-  UnauthorizedException,
-  Req,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { UploadFileDto } from '../dto/upload-file.dto';
 import { S3ClientUtils } from '../utils/s3-client.utils';
 import { ResponseUtil } from '../utils/response.util';
-import { randomUUID, createHmac, createHash } from 'crypto';
-import { Request } from 'express';
+import { randomUUID } from 'crypto';
 import { DeleteFileDto } from '../dto/delete-file.dto';
 
 @Controller('api/common')
 @UseGuards(JwtAuthGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 export class CommonUploadController {
-  constructor(
-    private readonly s3: S3ClientUtils,
-    private readonly configService: ConfigService,
-  ) {}
-
-  private verifySignature(
-    req: Request,
-    dto: { folder?: string },
-    file?: Express.Multer.File,
-    files?: Express.Multer.File[],
-  ) {
-    const signature = (req.headers['x-signature'] as string) || '';
-    const timestampHeader = (req.headers['x-timestamp'] as string) || '';
-    const secret = this.configService.get<string>('APP_KEY') || '';
-    if (!signature || !timestampHeader || !secret) {
-      throw new UnauthorizedException('Invalid signature');
-    }
-    const ts =
-      timestampHeader.length >= 12
-        ? Number(timestampHeader)
-        : Number(timestampHeader) * 1000;
-    if (!Number.isFinite(ts)) {
-      throw new UnauthorizedException('Invalid signature');
-    }
-    const now = Date.now();
-    if (Math.abs(now - ts) > 120000) {
-      throw new UnauthorizedException('Signature expired');
-    }
-    const dtoHash = createHash('sha256')
-      .update(
-        JSON.stringify({
-          folder: dto.folder || '',
-        }),
-      )
-      .digest('hex');
-    const fileHashes: string[] = [];
-    if (file?.buffer) {
-      fileHashes.push(createHash('sha256').update(file.buffer).digest('hex'));
-    }
-    if (Array.isArray(files)) {
-      for (const f of files) {
-        if (f?.buffer) {
-          fileHashes.push(createHash('sha256').update(f.buffer).digest('hex'));
-        }
-      }
-    }
-    const canonical = [
-      req.method,
-      dto.folder,
-      String(ts),
-      dtoHash,
-      fileHashes.join('.'),
-    ].join('\n');
-    const expected = createHmac('sha256', secret)
-      .update(canonical)
-      .digest('hex');
-    if (expected !== signature) {
-      throw new UnauthorizedException('Invalid signature');
-    }
-  }
+  constructor(private readonly s3: S3ClientUtils) {}
 
   @Post('upload')
   @UseInterceptors(
@@ -104,9 +41,7 @@ export class CommonUploadController {
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadFileDto,
-    @Req() req: Request,
   ) {
-    this.verifySignature(req, dto, file);
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -159,9 +94,7 @@ export class CommonUploadController {
   async uploadMany(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() dto: UploadFileDto,
-    @Req() req: Request,
   ) {
-    this.verifySignature(req, dto, undefined, files);
     if (!files || files.length === 0) {
       throw new BadRequestException('Files are required');
     }
@@ -216,8 +149,7 @@ export class CommonUploadController {
   }
 
   @Delete('upload')
-  async deleteFile(@Body() dto: DeleteFileDto, @Req() req: Request) {
-    this.verifySignature(req, dto);
+  async deleteFile(@Body() dto: DeleteFileDto) {
     const key = dto.key?.trim();
     if (!key) {
       throw new BadRequestException('Key is required');

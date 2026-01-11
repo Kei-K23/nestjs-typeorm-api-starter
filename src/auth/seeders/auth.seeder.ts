@@ -46,7 +46,7 @@ export class AuthSeeder {
 
   async seed() {
     // Create all modules' permissions first
-    const allModules = ['Users', 'Roles', 'Activity Logs', 'Settings'];
+    const allModules = ['Users', 'Roles', 'Activity_Logs', 'Settings'];
 
     const roleConfigs = this.getRoleConfigurations(allModules);
     const createdRoles: Role[] = [];
@@ -136,7 +136,7 @@ export class AuthSeeder {
   }
 
   private async createSuperAdmin(role: Role): Promise<void> {
-    const email = 'superadmin@gmail.com';
+    const email = 'keiksl2301@gmail.com';
     const existing = await this.userRepository.findOne({ where: { email } });
     if (!existing) {
       await this.userRepository.save(
