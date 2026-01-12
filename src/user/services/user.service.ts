@@ -160,12 +160,23 @@ export class UserService {
       }
     }
 
-    if (
-      updateUserDto.profileImageUrl &&
-      updateUserDto.profileImageUrl !== existingUser.profileImageUrl
-    ) {
+    if (updateUserDto.profileImageUrl) {
+      const updatedUserImageKey = this.s3ClientUtils.getKeyFromPresignedUrl(
+        updateUserDto.profileImageUrl || '',
+      );
+
+      if (updatedUserImageKey) {
+        if (updatedUserImageKey !== existingUser.profileImageUrl) {
+          if (existingUser.profileImageUrl) {
+            await this.s3ClientUtils.deleteObject(existingUser.profileImageUrl);
+          }
+        }
+        updateUserDto.profileImageUrl = updatedUserImageKey || '';
+      }
+    } else if (!updateUserDto.profileImageUrl) {
       if (existingUser.profileImageUrl) {
         await this.s3ClientUtils.deleteObject(existingUser.profileImageUrl);
+        updateUserDto.profileImageUrl = '';
       }
     }
 

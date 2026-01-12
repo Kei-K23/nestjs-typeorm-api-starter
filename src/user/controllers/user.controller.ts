@@ -10,6 +10,8 @@ import {
   Param,
   Patch,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
@@ -23,12 +25,19 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { ResponseUtil } from 'src/common/utils/response.util';
 import { FilterUserDto } from '../dto/filter-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
+import { randomUUID } from 'crypto';
 
 @Controller('api/users')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly s3ClientUtils: S3ClientUtils,
+  ) {}
 
   @Post()
   @RequirePermissions({
@@ -41,7 +50,35 @@ export class UserController {
     resourceType: 'user',
     getResourceId: (result: User) => result.id?.toString(),
   })
-  async create(@Body() createUserDto: CreateUserDto) {
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file?.mimetype) return cb(null, false);
+        cb(null, true);
+      },
+    }),
+  )
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    if (file) {
+      const original = file.originalname?.trim() || 'profile';
+      const sanitized = original.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const key = `${randomUUID()}-${sanitized}`;
+      const res = await this.s3ClientUtils.uploadFile({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+        path: 'users/profile',
+        metadata: { filename: original },
+      });
+      if (res.success && res.key) {
+        createUserDto.profileImageUrl = res.key;
+      }
+    }
     const user = await this.userService.create(createUserDto);
     return ResponseUtil.created(user, 'User created successfully');
   }
@@ -86,7 +123,36 @@ export class UserController {
     resourceType: 'user',
     getResourceId: (result: User) => result.id?.toString(),
   })
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file?.mimetype) return cb(null, false);
+        cb(null, true);
+      },
+    }),
+  )
+  async update(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    if (file) {
+      const original = file.originalname?.trim() || 'profile';
+      const sanitized = original.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const key = `${randomUUID()}-${sanitized}`;
+      const res = await this.s3ClientUtils.uploadFile({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+        path: 'users/profile',
+        metadata: { filename: original },
+      });
+      if (res.success && res.key) {
+        updateUserDto.profileImageUrl = res.key;
+      }
+    }
     const user = await this.userService.update(id, updateUserDto);
     return ResponseUtil.updated(user, 'User updated successfully');
   }
