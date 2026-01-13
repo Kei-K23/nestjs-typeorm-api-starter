@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -36,6 +37,8 @@ import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -112,7 +115,8 @@ export class AuthService {
     });
 
     if (!fullUser) {
-      throw new UnauthorizedException('User not found');
+      this.logger.warn(`User with ID '${user.id}' not found`);
+      throw new UnauthorizedException(`User with ID '${user.id}' not found`);
     }
 
     return this.completeLogin(fullUser, request);
@@ -130,7 +134,12 @@ export class AuthService {
     );
 
     if (!isValidCode) {
-      throw new UnauthorizedException('Invalid or expired verification code');
+      this.logger.warn(
+        `Invalid or expired verification code for user with ID '${userId}'`,
+      );
+      throw new UnauthorizedException(
+        `Invalid or expired verification code for user with ID '${userId}'`,
+      );
     }
 
     const user = await this.userRepository.findOne({
@@ -143,7 +152,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      this.logger.warn(`User with ID '${userId}' not found`);
+      throw new UnauthorizedException(`User with ID '${userId}' not found`);
     }
 
     // Complete the login process
@@ -210,7 +220,12 @@ export class AuthService {
     });
 
     if (!refreshToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+      this.logger.warn(
+        `Invalid refresh token '${refreshTokenString}' provided`,
+      );
+      throw new UnauthorizedException(
+        `Invalid refresh token '${refreshTokenString}' provided`,
+      );
     }
 
     if (refreshToken.expiresAt < new Date()) {
@@ -219,7 +234,7 @@ export class AuthService {
       await this.refreshTokenRepository.save(refreshToken);
 
       throw new UnauthorizedException(
-        'Expired refresh token! Please login again',
+        `Expired refresh token for user with ID '${refreshToken.user.id}'! Please login again`,
       );
     }
 
@@ -230,6 +245,9 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload);
+    this.logger.log(
+      `User with ID '${refreshToken.user.id}' logged in successfully`,
+    );
 
     return {
       accessToken,
@@ -301,7 +319,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(`User with ID '${userId}' not found`);
+      throw new NotFoundException(`User with ID '${userId}' not found`);
     }
 
     // Delete previous profile image from S3
@@ -324,7 +343,8 @@ export class AuthService {
       ...updateProfileDto,
     });
     if (!updatedUser) {
-      throw new BadRequestException('Invalid update profile data');
+      this.logger.warn(`User with ID '${userId}' not found`);
+      throw new BadRequestException(`User with ID '${userId}' not found`);
     }
 
     if (updateProfileDto.password) {
@@ -350,6 +370,8 @@ export class AuthService {
 
     const { password, ...result } = savedUser;
     void password;
+
+    this.logger.log(`User with ID '${user.id}' profile updated successfully`);
     return result;
   }
 
@@ -363,7 +385,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(`User with ID '${userId}' not found`);
+      throw new NotFoundException(`User with ID '${userId}' not found`);
     }
 
     // Verify current password
@@ -373,7 +396,12 @@ export class AuthService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new BadRequestException('Current password is incorrect');
+      this.logger.warn(
+        `User with ID '${userId}' provided incorrect current password`,
+      );
+      throw new BadRequestException(
+        `User with ID '${userId}' provided incorrect current password`,
+      );
     }
 
     // Update password
@@ -396,6 +424,8 @@ export class AuthService {
       os,
       location: request?.headers['cf-ipcountry'] as string,
     });
+
+    this.logger.log(`User with ID '${user.id}' password changed successfully`);
     await this.userActivityLogRepository.save(userActivityLog);
   }
 
@@ -406,7 +436,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(`User with ID '${userId}' not found`);
+      throw new NotFoundException(`User with ID '${userId}' not found`);
     }
 
     // Log activity before deletion
@@ -427,6 +458,18 @@ export class AuthService {
     // Revoke all refresh tokens
     await this.revokeAllUserTokens(userId);
 
+    // Delete user profile image from S3 if it exists
+    if (user.profileImageUrl) {
+      if (
+        user.profileImageUrl &&
+        (await this.s3ClientUtils.objectExists(user.profileImageUrl))
+      ) {
+        await this.s3ClientUtils.deleteObject(user.profileImageUrl);
+      }
+    }
+
+    // Delete user
+    this.logger.log(`User with ID '${user.id}' account deleted successfully`);
     await this.userRepository.remove(user);
   }
 
@@ -439,7 +482,12 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(
+        `User with email '${forgotPasswordSendOTP.email}' not found`,
+      );
+      throw new NotFoundException(
+        `User with email '${forgotPasswordSendOTP.email}' not found`,
+      );
     }
 
     // Log activity
@@ -482,6 +530,9 @@ export class AuthService {
       expiresIn: 10,
     });
 
+    this.logger.log(
+      `User with ID '${user.id}' send forgot password request successfully`,
+    );
     return {
       userId: user.id,
     };
@@ -499,6 +550,9 @@ export class AuthService {
     });
 
     if (!otpVerification) {
+      this.logger.warn(
+        `No pending otp verification found for user ID '${verifyPasswordResetOTPCode.userId}'`,
+      );
       throw new BadRequestException('No pending otp verification found');
     }
 
@@ -506,6 +560,9 @@ export class AuthService {
     if (new Date() > otpVerification.expiresAt) {
       otpVerification.status = CacheKeyStatus.EXPIRED;
       await this.cacheKeyRepository.save(otpVerification);
+      this.logger.warn(
+        `Verification code for user ID '${verifyPasswordResetOTPCode.userId}' has expired`,
+      );
       throw new BadRequestException('Verification code has expired');
     }
 
@@ -513,6 +570,9 @@ export class AuthService {
     if (otpVerification.attempts >= otpVerification.maxAttempts) {
       otpVerification.status = CacheKeyStatus.EXPIRED;
       await this.cacheKeyRepository.save(otpVerification);
+      this.logger.warn(
+        `Maximum verification attempts exceeded for user ID '${verifyPasswordResetOTPCode.userId}'`,
+      );
       throw new BadRequestException('Maximum verification attempts exceeded');
     }
 
@@ -522,6 +582,9 @@ export class AuthService {
     // Verify code
     if (otpVerification.code !== verifyPasswordResetOTPCode.code) {
       await this.cacheKeyRepository.save(otpVerification);
+      this.logger.warn(
+        `Invalid verification code for user ID '${verifyPasswordResetOTPCode.userId}'`,
+      );
       throw new BadRequestException('Invalid verification code');
     }
 
@@ -537,6 +600,9 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
+    this.logger.log(
+      `User with ID '${verifyPasswordResetOTPCode.userId}' verified reset password request successfully`,
+    );
     return {
       userId: verifyPasswordResetOTPCode.userId,
       accessToken,
@@ -560,11 +626,19 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      this.logger.warn(
+        `User with ID '${userId}' not found after token verification`,
+      );
+      throw new NotFoundException(
+        `User with ID '${userId}' not found after token verification`,
+      );
     }
 
     if (type !== CacheKeyService.RESET_PASSWORD) {
-      throw new BadRequestException('Invalid access token type');
+      this.logger.warn(`Invalid access token type for user ID '${userId}'`);
+      throw new BadRequestException(
+        `Invalid access token type for user ID '${userId}'`,
+      );
     }
 
     // Update password
@@ -584,6 +658,7 @@ export class AuthService {
       os,
       location: request?.headers['cf-ipcountry'] as string,
     });
+    this.logger.log(`User with ID '${user.id}' changed password successfully`);
     await this.userActivityLogRepository.save(userActivityLog);
   }
 

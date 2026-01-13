@@ -87,11 +87,14 @@ A comprehensive, production-ready NestJS template with TypeORM, featuring authen
 
     # Email Configuration
     EMAIL_FROM_NAME="NestJS TypeORM API Starter"
+
+    # CORS
+    CORS_ORIGINS=http://localhost:3000,http://localhost:5173
    ```
 
 4. **Database Setup**
 
-Create your PostgreSQL database and run the application. TypeORM will automatically create tables based on your entities.
+Create your PostgreSQL database and use the manual migration workflow below to create tables.
 
 5. **Start the application**
 
@@ -103,6 +106,64 @@ npm run start:dev
 npm run build
 npm run start:prod
 ```
+
+## 📦 Manual TypeORM Migrations
+
+This project uses manual migrations for database schema changes. Synchronize is disabled in the data source to prevent unintended schema updates.
+
+### Configuration
+
+- DataSource: [src/data-source.ts](file:///Users/arkarmin/Desktop/personal-projects/nestjs-typeorm-api-starter/src/data-source.ts)
+- Migrations directory: `src/migrations`
+- Scripts (package.json):
+  - `migration:generate` – generate a migration from current entity changes
+  - `migration:run` – run all pending migrations
+  - `migration:revert` – revert the last executed migration
+
+### Generate a migration
+
+Run the generate script and pass a name/path for the migration after `--`:
+
+```bash
+# Example: create an Init migration file under src/migrations
+npm run migration:generate -- src/migrations/Init
+```
+
+Notes:
+
+- The path/name after `--` is required; omitting it causes: “Not enough non-option arguments”.
+- Ensure your entities reflect the desired schema before generating.
+
+### Run migrations
+
+```bash
+npm run migration:run
+```
+
+If you see “No migrations are pending”, verify your migrations exist under `src/migrations` and the glob in `data-source.ts` is:
+
+```ts
+migrations: [__dirname + '/migrations/*.{ts,js}'];
+```
+
+### Revert the last migration
+
+```bash
+npm run migration:revert
+```
+
+### Development tips
+
+- Keep `synchronize: false` for all environments.
+- After editing entities, generate a new migration to track changes.
+- For production deploys, compile the app and run migrations using the same scripts; the CLI uses `ts-node` here, so TypeScript migrations under `src/migrations` are supported.
+- If you move migrations or change their path, update the `migrations` property in the data source accordingly.
+
+### Troubleshooting
+
+- “Not enough non-option arguments”: Add a path/name after `--` when running `migration:generate`.
+- “No migrations are pending”: Confirm migrations are in `src/migrations` and the glob matches; ensure you haven’t already run them.
+- “Unknown argument: migrations/...”: Do not pass a path to `migration:run`; only `migration:generate` expects a path/name.
 
 ## 🏗️ Project Structure
 
@@ -143,10 +204,8 @@ src/
 ├── app.controller.ts   # Main app controller
 ├── app.module.ts      # Main app module
 ├── app.service.ts     # Main app service
+├── data-source.ts     # TypeORM data source configuration
 └── main.ts           # Application entry point
-
-cli/                   # CLI tools for code generation
-└── easy-generate/     # CLI for easy code generation
 ```
 
 ## 🔐 Authentication & Authorization

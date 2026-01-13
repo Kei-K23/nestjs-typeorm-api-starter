@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -24,6 +25,8 @@ export interface ActivityLogOptions {
 
 @Injectable()
 export class ActivityLogInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(ActivityLogInterceptor.name);
+
   constructor(
     private readonly activityLogService: ActivityLogService,
     private readonly reflector: Reflector,
@@ -53,7 +56,7 @@ export class ActivityLogInterceptor implements NestInterceptor {
           request as unknown as Request,
           logOptions,
         ).catch((error) => {
-          console.error('Failed to log activity:', error);
+          this.logger.error('Failed to log activity:', error);
         });
       }),
     );
@@ -91,8 +94,11 @@ export class ActivityLogInterceptor implements NestInterceptor {
           body: request.method !== 'GET' ? request.body : undefined,
         },
       });
+      this.logger.log(
+        `Activity logged: ${logOptions.action} ${logOptions.description} for resource ${resourceId}`,
+      );
     } catch (error) {
-      console.error('Failed to log activity:', error);
+      this.logger.error('Failed to log activity:', error);
     }
   }
 

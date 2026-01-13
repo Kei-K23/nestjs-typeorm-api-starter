@@ -66,6 +66,7 @@ export class RoleService {
     });
 
     if (existingRole) {
+      this.logger.warn(`Role with name '${createRoleDto.name}' already exists`);
       throw new ConflictException(
         `Role with name '${createRoleDto.name}' already exists`,
       );
@@ -119,6 +120,9 @@ export class RoleService {
       });
 
       if (existingRole) {
+        this.logger.warn(
+          `Role with name '${updateRoleDto.name}' already exists`,
+        );
         throw new ConflictException(
           `Role with name '${updateRoleDto.name}' already exists`,
         );
@@ -173,6 +177,9 @@ export class RoleService {
 
     // Check if role has users assigned
     if (role.users && role.users.length > 0) {
+      this.logger.warn(
+        `Cannot delete role with ID '${id}' that has users assigned to it`,
+      );
       throw new ConflictException(
         'Cannot delete role that has users assigned to it',
       );
@@ -197,6 +204,7 @@ export class RoleService {
       const invalidIds = permissionIds.filter(
         (id) => !existingIds.includes(id),
       );
+      this.logger.warn(`Invalid permission IDs: ${invalidIds.join(', ')}`);
       throw new BadRequestException(
         `Invalid permission IDs: ${invalidIds.join(', ')}`,
       );
