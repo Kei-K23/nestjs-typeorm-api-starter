@@ -399,9 +399,7 @@ export class AuthService {
       this.logger.warn(
         `User with ID '${userId}' provided incorrect current password`,
       );
-      throw new BadRequestException(
-        `User with ID '${userId}' provided incorrect current password`,
-      );
+      throw new BadRequestException(`Incorrect current password`);
     }
 
     // Update password

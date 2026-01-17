@@ -177,13 +177,7 @@ export class UserService {
         }
         updateUserDto.profileImageUrl = updatedUserImageKey || '';
       }
-    } else if (!updateUserDto.profileImageUrl) {
-      if (existingUser.profileImageUrl) {
-        await this.s3ClientUtils.deleteObject(existingUser.profileImageUrl);
-        updateUserDto.profileImageUrl = '';
-      }
     }
-
     // Update the user
     const updatedUser = await this.userRepository.preload({
       id,
