@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { AuthSeeder } from '../auth/seeders/auth.seeder';
-import { SettingSeeder } from '../setting/seeders/setting.seeder';
+import { AuthSeeder } from '../v1/auth/seeders/auth.seeder';
+import { SettingSeeder } from '../v1/setting/seeders/setting.seeder';
 
 async function runSeeders() {
   console.log('🌱 Starting database seeding...');

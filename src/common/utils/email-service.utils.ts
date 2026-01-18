@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as nodemailer from 'nodemailer';
-import { Setting } from 'src/setting/entities/setting.entity';
+import { Setting } from 'src/v1/setting/entities/setting.entity';
 
 @Injectable()
 export class EmailServiceUtils {

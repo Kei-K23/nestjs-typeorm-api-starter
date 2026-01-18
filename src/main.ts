@@ -1,5 +1,9 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { WinstonModule } from 'nest-winston';
@@ -70,6 +74,12 @@ async function bootstrap() {
   // Apply global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Enable versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+  });
+
+  // Start the application
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on port ${process.env.PORT ?? 3000}`);
 }

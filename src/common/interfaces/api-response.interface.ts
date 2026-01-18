@@ -5,6 +5,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   meta?: ResponseMeta;
   timestamp: string;
+  apiVersion: 'v1' | 'v2' | 'v3';
 }
 
 export interface ResponseMeta {
@@ -21,4 +22,5 @@ export interface ErrorResponse {
   error: string;
   details?: any;
   timestamp: string;
+  apiVersion: 'v1' | 'v2' | 'v3';
 }

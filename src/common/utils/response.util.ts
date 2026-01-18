@@ -14,6 +14,7 @@ export class ResponseUtil {
     message: string = 'Operation successful',
     statusCode: number = HttpStatus.OK,
     meta?: ResponseMeta,
+    apiVersion: 'v1' | 'v2' | 'v3' = 'v1',
   ): ApiResponse<T> {
     return {
       success: true,
@@ -21,6 +22,7 @@ export class ResponseUtil {
       message,
       data,
       meta,
+      apiVersion,
       timestamp: new Date().toISOString(),
     };
   }
@@ -82,6 +84,7 @@ export class ResponseUtil {
     statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR,
     error: string = 'Internal Server Error',
     details?: any,
+    apiVersion: 'v1' | 'v2' | 'v3' = 'v1',
   ): ErrorResponse {
     return {
       success: false,
@@ -90,6 +93,7 @@ export class ResponseUtil {
       error,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       details,
+      apiVersion,
       timestamp: new Date().toISOString(),
     };
   }
