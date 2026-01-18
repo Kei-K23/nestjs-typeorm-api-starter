@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsString,
@@ -27,6 +28,15 @@ export class CreateUserDto {
   @IsOptional()
   @IsString({ message: 'Phone must be a string' })
   phone?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return undefined;
+    if (value === 'true' || value === '1' || value === true) return true;
+    if (value === 'false' || value === '0' || value === false) return false;
+    return undefined;
+  })
+  isBanned?: boolean;
 
   @IsOptional()
   @IsUUID('4', { message: 'Role ID must be a valid UUID' })
