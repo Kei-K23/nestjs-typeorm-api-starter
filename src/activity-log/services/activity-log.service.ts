@@ -8,12 +8,14 @@ import {
 } from 'typeorm';
 import { UserActivityLog } from '../entities/user-activity-log.entity';
 import { FilterActivityLogDto } from '../dto/filter-activity-log.dto';
+import { S3ClientUtils } from 'src/common/utils/s3-client.utils';
 
 @Injectable()
 export class ActivityLogService {
   constructor(
     @InjectRepository(UserActivityLog)
     private readonly activityLogRepository: Repository<UserActivityLog>,
+    private readonly s3ClientUtils: S3ClientUtils,
   ) {}
 
   async create(createActivityLogDto: any) {
@@ -86,17 +88,24 @@ export class ActivityLogService {
     const [data, total] =
       await this.activityLogRepository.findAndCount(options);
 
+    const dataWithUserImage = await Promise.all(
+      data.map(async (d) => ({
+        ...d,
+        user: {
+          ...d.user,
+          profileImageUrl: d.user?.profileImageUrl
+            ? await this.s3ClientUtils.generatePresignedUrl(
+                d.user.profileImageUrl,
+              )
+            : null,
+        },
+      })),
+    );
+
     return {
-      data,
+      data: dataWithUserImage,
       total,
     };
-  }
-
-  async findById(id: number): Promise<UserActivityLog | null> {
-    return await this.activityLogRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
   }
 
   async deleteOldLogs(daysToKeep: number = 90): Promise<void> {
