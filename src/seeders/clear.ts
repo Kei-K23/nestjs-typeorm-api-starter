@@ -14,25 +14,21 @@ async function clearDatabase() {
     if (truncateMode) {
       console.log('🗑️ Truncating all tables...');
 
-      // Get all table names
+      // Get all base table names (exclude views)
       const tables = await dataSource.query(`
-        SELECT tablename FROM pg_tables 
-        WHERE schemaname = 'public' 
-        AND tablename NOT LIKE 'pg_%' 
-        AND tablename != 'information_schema'
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE'
       `);
 
-      // Disable foreign key checks temporarily
-      await dataSource.query('SET session_replication_role = replica;');
-
-      // Truncate all tables
-      for (const table of tables) {
-        await dataSource.query(`TRUNCATE TABLE "${table.tablename}" CASCADE;`);
-        console.log(`✅ Truncated table: ${table.tablename}`);
+      // Truncate all tables and reset identity, cascade to dependents
+      for (const row of tables) {
+        const tableName = row.table_name;
+        await dataSource.query(
+          `TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE;`,
+        );
+        console.log(`✅ Truncated table: ${tableName}`);
       }
-
-      // Re-enable foreign key checks
-      await dataSource.query('SET session_replication_role = DEFAULT;');
 
       console.log('🎉 All tables truncated successfully!');
     } else {
